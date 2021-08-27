@@ -7,3 +7,7 @@
 
 #Ignore session.%CHARS% files
 session.*
+
+#Ignore Elpa folder
+
+**/elpa
