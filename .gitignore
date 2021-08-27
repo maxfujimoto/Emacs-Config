@@ -1,0 +1,9 @@
+
+#Ignore "auto-save-list" folder
+**/auto-save-list
+
+#Ignore temps files with ~ file type
+*~
+
+#Ignore session.%CHARS% files
+session.*
