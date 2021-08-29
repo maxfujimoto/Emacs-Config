@@ -6,6 +6,10 @@
 
 (setq org-todo-keywords
       '((type "TODO" "COM" "EE" "MUSIC" "GET" "|" "DONE" "HOLD")))
+
+					;-------   Visual-Line-Mode   -------\
+(add-hook 'org-mode-hook #'visual-line-mode)
+
 					;-------   Agenda   -------\
 ;(setq org-agenda-files
 ;      (list "~/org/Todo.org" "~/org/Notes.org" "~/org/Agenda.org"))
