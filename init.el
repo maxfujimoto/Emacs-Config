@@ -20,6 +20,7 @@
 (load "~/.emacs.d/mf-gui.el")
 ;(load "~/.emacs.d/mf-keys.el")
 (load "~/.emacs.d/mf-org.el")
+(load "~/.emacs.d/mf-templates.el")
 
 					;-------   Custom   -------\
 (custom-set-variables
