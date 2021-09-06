@@ -1,13 +1,10 @@
-
-#Ignore "auto-save-list" folder
-**/auto-save-list
-
-#Ignore temps files with ~ file type
+# Ignore temps files with ~ file type
 *~
 
-#Ignore session.%CHARS% files
+# Ignore session.%CHARS% files
 session.*
 
-#Ignore Elpa folder
-
+#Ignore folders
+**/auto-save-list
 **/elpa
+**/url
