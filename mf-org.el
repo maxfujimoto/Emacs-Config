@@ -5,7 +5,7 @@
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
 (setq org-todo-keywords
-      '((type "TODO" "COM" "EE" "MUSIC" "GET" "|" "DONE" "HOLD")))
+      '((type "TODO" "HOLD" "|" "DONE")))
 
 					;-------   Visual-Line-Mode   -------\
 (add-hook 'org-mode-hook #'visual-line-mode)
