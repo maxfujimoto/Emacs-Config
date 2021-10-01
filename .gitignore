@@ -1,10 +1,16 @@
-# Ignore temps files with ~ file type
+# File Types
 *~
+*.eld
 
-# Ignore session.%CHARS% files
+# session.%CHARS% files
 session.*
 
-#Ignore folders
+# Folders
 **/auto-save-list
 **/elpa
 **/url
+**/transient
+
+# Files
+history
+forge-database.sqlite
