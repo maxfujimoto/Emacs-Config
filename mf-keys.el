@@ -1,5 +1,4 @@
-					;-------   Key Binds   -------\
-(setq evil-disable-insert-state-bindings t)
+;-------   Key Packages   -------\
 
 (use-package evil
   :init
@@ -7,6 +6,7 @@
   (setq evil-want-keybinding nil)
   (setq evil-want-C-u-scroll t)
   (setq evil-want-C-i-jump nil)
+  ;;  (setq evil-undo-system undo-tree)
   :config
   (evil-mode 1)
   (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
@@ -19,8 +19,11 @@
   (evil-set-initial-state 'messages-buffer-mode 'normal)
   (evil-set-initial-state 'dashboard-mode 'normal))
 
+(setq evil-disable-insert-state-bindings t)
+
 (use-package evil-collection
   :after evil
+  :diminish evil-collection-unimpaired-mode
   :config
   (evil-collection-init))
 
@@ -30,20 +33,20 @@
   (general-create-definer mf/leader-keys
     :keymaps '(normal insert visual emacs)
     :prefix "SPC"
-    :global-prefix "C-SPC")
-
-  (mf/leader-keys
-    "t"  '(:ignore t :which-key "toggles")
-    "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/Emacs.org")))))
+    :global-prefix "C-SPC"))
 
 (use-package hydra
   :defer t)
+
+;-------   Key Functions   -------\
+
+(mf/leader-keys
+  "t"  '(:ignore t :which-key "toggles")
+  "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/emacs.org")))
+  "ts" '(hydra-text-scale/body :which-key "scale text"))
 
 (defhydra hydra-text-scale (:timeout 4)
   "scale text"
   ("j" text-scale-increase "in")
   ("k" text-scale-decrease "out")
   ("f" nil "finished" :exit t))
-
-(mf/leader-keys
-  "ts" '(hydra-text-scale/body :which-key "scale text")) 

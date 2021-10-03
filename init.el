@@ -1,13 +1,13 @@
-					;-------   General   -------\
-					;sets default visit file directory(, must end in slash?)
+;-------   General   -------\
+(global-auto-revert-mode t)
 
-;(setq default-directory "")
+;;(setq default-directory "")
 
-					;-------   Package Manager   -------\
+;-------   Package Manager   -------\
 
 (require 'package)
 (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
-                         ("melpa" . "https://melpa.org/packages/")
+			 ("melpa" . "https://melpa.org/packages/")
 			 ("org" . "https://orgmode.org/elpa/")
 			 ("melpa-stable" . "https://stable.melpa.org/packages/")))
 (package-initialize)
@@ -17,29 +17,12 @@
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
 
-(require 'use-package)
-(setq use-package-always-ensure t)      ; downloads if not installed
+(eval-when-compile
+(require 'use-package))
+(setq use-package-always-ensure t)
 
-					;-------   Custom   -------\
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(visual-fill-column magit evil-magit hydra general evil-collection evil helpful which-key orderless marginalia vertico pdf-tools use-package sublime-themes ebib org-bullets)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(default ((t (:background nil)))))
-
-					;------- Packages -------\
-
-;; minimal completion
+;-------   Completion   -------\
 (use-package vertico
-  ;; Removes mode from displaying in mode section
   :diminish
 ;  :bind (:map vertico-map
 ;	      ("" . vertico-next)
@@ -52,12 +35,10 @@
   :init
   (vertico-mode))
 
-;; saves completion history
 (use-package savehist
   :init
   (savehist-mode))
 
-;; additional completion info
 (use-package marginalia
   :after vertico
   :custom
@@ -65,12 +46,11 @@
   :init
   (marginalia-mode))
 
-;; orderless completion and wildcard suppord for find file
 (use-package orderless
   :init
   (setq completion-styles '(orderless)
-        completion-category-defaults nil
-        completion-category-overrides '((file (styles partial-completion)))))
+	completion-category-defaults nil
+	completion-category-overrides '((file (styles partial-completion)))))
 
 (use-package emacs
   :init
@@ -82,7 +62,7 @@
 
   ;; Do not allow the cursor in the minibuffer prompt
   (setq minibuffer-prompt-properties
-        '(read-only t cursor-intangible t face minibuffer-prompt))
+	'(read-only t cursor-intangible t face minibuffer-prompt))
   (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 
 ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
@@ -93,13 +73,10 @@
     ;; Enable recursive minibuffers
   (setq enable-recursive-minibuffers t))
 
-(use-package rainbow-delimiters
-  :diminish
-  :hook (prog-mode . rainbow-delimiters-mode))
-
+;-------   Help   -------\
 (use-package which-key
   :init (which-key-mode)
-  :diminish
+  :diminish which-key-mode
   :config
   (setq which-key-idle-delay 1.5))
 
@@ -114,18 +91,19 @@
   ([remap describe-command] . helpful-command)
   ([remap describe-key] . helpful-key))
 
+;-------   General Tools   -------\
+
+(use-package undo-tree)
+
 (use-package pdf-tools
  :pin manual ;; manually update
  :config
- ;; initialise
  (pdf-tools-install)
- ;; open pdfs scaled to fit page
  (setq-default pdf-view-display-size 'fit-page)
- ;; automatically annotate highlights
  (setq pdf-annot-activate-created-annotations t)
- ;; use normal isearch
  (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward))
 
+;-------   Version Control   -------\
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
@@ -139,15 +117,15 @@
 
 (use-package magit)
 ;;  :Custom                             ; opens diff in current buffer
-;;  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+;;  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
 
 (use-package forge
   :after magit)
 
-					;-------   Load Paths   -------\
+;-------   Load Paths   -------\
 
 (load "~/.emacs.d/mf-gui.el")
 (load "~/.emacs.d/mf-keys.el")
-(load "~/.emacs.d/mf-org.el")
 (load "~/.emacs.d/mf-templates.el")
+(load "~/.emacs.d/mf-org.el")
 (load "~/.emacs.d/mf-sh.el")
