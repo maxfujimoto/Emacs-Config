@@ -214,10 +214,9 @@
      (load "~/.emacs.d/mf-templates.el")
      (load "~/.emacs.d/mf-org.el")
      (load "~/.emacs.d/mf-sh.el")
-
    #+end_src
    
-
+   
 * mf-gui.el
 
 ** Theme
@@ -249,7 +248,7 @@
      (menu-bar-mode -1)
      (tool-bar-mode -1)
      (global-set-key (kbd "<f5>") 'menu-bar-mode)
-     (set-fringe-mode 10)                    ; paddingcolumn
+     (set-fringe-mode 10)                    ; padding
      (tooltip-mode -1)
      ;;(setq visible-bell t)
 
@@ -284,9 +283,9 @@
        :hook (prog-mode . rainbow-delimiters-mode))
 
      (use-package mlscroll
-       :ensure t
        :config
-       (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
+     ;;  breaks evil status indicator
+     ;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
        (mlscroll-mode 1))
 
    #+end_src 
@@ -323,6 +322,8 @@
        (setq evil-want-keybinding nil)
        (setq evil-want-C-u-scroll t)
        (setq evil-want-C-i-jump nil)
+       (setq evil-mode-line-format 'after)
+       (setq evil-disable-insert-state-bindings t)
        ;;  (setq evil-undo-system undo-tree)
        :config
        (evil-mode 1)
@@ -336,7 +337,6 @@
        (evil-set-initial-state 'messages-buffer-mode 'normal)
        (evil-set-initial-state 'dashboard-mode 'normal))
 
-     (setq evil-disable-insert-state-bindings t)
 
      (use-package evil-collection
        :after evil

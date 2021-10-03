@@ -17,7 +17,7 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (global-set-key (kbd "<f5>") 'menu-bar-mode)
-(set-fringe-mode 10)                    ; paddingcolumn
+(set-fringe-mode 10)                    ; padding
 (tooltip-mode -1)
 ;;(setq visible-bell t)
 
@@ -40,9 +40,9 @@
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package mlscroll
-  :ensure t
   :config
-  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
+;;  breaks evil status indicator
+;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
   (mlscroll-mode 1))
 
 ;-------   Fonts    -------\

@@ -6,6 +6,8 @@
   (setq evil-want-keybinding nil)
   (setq evil-want-C-u-scroll t)
   (setq evil-want-C-i-jump nil)
+  (setq evil-mode-line-format 'after)
+  (setq evil-disable-insert-state-bindings t)
   ;;  (setq evil-undo-system undo-tree)
   :config
   (evil-mode 1)
@@ -19,7 +21,6 @@
   (evil-set-initial-state 'messages-buffer-mode 'normal)
   (evil-set-initial-state 'dashboard-mode 'normal))
 
-(setq evil-disable-insert-state-bindings t)
 
 (use-package evil-collection
   :after evil
