@@ -18,8 +18,8 @@
   :commands (org-capture org-agenda)
   :hook (org-mode . mf/org-mode-setup)
   :config (setq org-startup-folded t
-	        ;;org-ellipsis " ▾"
-	        org-log-agenda-sater-with-log-mode t
+		;;org-ellipsis " ▾"
+		org-log-agenda-sater-with-log-mode t
 		org-log-done 'time
 		org-log-into-drawer t))
 
@@ -34,7 +34,6 @@
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
 
 (use-package org-bullets
-  :after org
   :hook (org-mode . org-bullets-mode))
 
 (use-package visual-fill-column
@@ -78,8 +77,6 @@
 		((org-agenda-overriding-header "Make")
 		 (org-agenda-files org-agenda-files)))))))
 
-
-
 (setq org-tag-alist
       '((:startgroup)
 	;; Put mutually exclusive tags here
@@ -93,9 +90,9 @@
 
 ;-------   Org Keys   -------\
 
-;(add-to-list 'auto-mode-alist '("\\.org$" . org-mode))        
-;(define-key global-map "\C-cl" 'org-store-link)
+;;(add-to-list 'auto-mode-alist '("\\.org$" . org-mode))        
+;;(define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cc" 'org-capture)
-;(define-key global-map (kbd "C-c c")
-;    (lambda () (interactive) (org-capture nil "jj")))
+;;(define-key global-map (kbd "C-c c")
+;;    (lambda () (interactive) (org-capture nil "jj")))

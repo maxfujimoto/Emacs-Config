@@ -6,9 +6,11 @@
    :config
    (load-theme 'brin t))
 
-(use-package moe-theme)
+(use-package moe-theme
+  :defer 0)
 
-(use-package doom-themes)
+(use-package doom-themes
+  :defer 0)
 
 ;-------   General   -------\
 
@@ -35,6 +37,11 @@
 
 (use-package diminish)
 
+(eval-after-load "eldoc"
+   '(diminish 'eldoc-mode))
+
+(diminish 'abbrev-mode)
+
 (use-package rainbow-delimiters
   :diminish
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -44,6 +51,23 @@
 ;;  breaks evil status indicator
 ;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
   (mlscroll-mode 1))
+
+(use-package dired
+  :ensure nil
+  :commands (dired dired-jump)
+  :bind (("C-x C-j" . dired-jump))
+  :custom ((dired-listing-switches "-agho --group-directories-first")))
+
+(autoload 'dired-omit-mode "dired-x")	
+
+(use-package dired-single
+  :commands (dired dired-jump))
+
+(use-package dired-ranger
+  :defer t)
+
+(use-package dired-collapse
+  :defer t)
 
 ;-------   Fonts    -------\
 

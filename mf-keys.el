@@ -8,7 +8,7 @@
   (setq evil-want-C-i-jump nil)
   (setq evil-mode-line-format 'after)
   (setq evil-disable-insert-state-bindings t)
-  ;;  (setq evil-undo-system undo-tree)
+  ;;(setq evil-undo-system undo-tree)
   :config
   (evil-mode 1)
   (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
@@ -38,6 +38,17 @@
 
 (use-package hydra
   :defer t)
+
+;-------   Key Definitions   -------\
+
+
+(evil-collection-define-key 'normal 'dired-mode-map
+  "h" 'dired-single-up-directory
+  "H" 'dired-omit-mode
+  "l" 'dired-single-buffer
+  "y" 'dired-ranger-copy
+  "X" 'dired-ranger-move
+  "p" 'dired-ranger-paste)
 
 ;-------   Key Functions   -------\
 

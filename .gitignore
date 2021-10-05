@@ -2,9 +2,6 @@
 *~
 *.eld
 
-# session.%CHARS% files
-session.*
-
 # Folders
 **/auto-save-list
 **/elpa
@@ -14,3 +11,5 @@ session.*
 # Files
 history
 forge-database.sqlite
+.lsp-session*
+session.*
