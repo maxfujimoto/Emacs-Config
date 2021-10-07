@@ -58,13 +58,15 @@
 		((org-agenda-overriding-header "Next Tasks")))))
 
 
-	("d" "Computer" tags-todo "+computer")
+	("d" "Computer" tags-todo "computer")
 
-	("r" "Write" tags-todo "+write")
+	("l" "Learn" tags-todo "learn")
 
-	("w" "Electrical Engineering" tags-todo "+ee")
+	("r" "Write" tags-todo "write")
 
-	("p" "Music Production" tags-todo "+music")
+	("w" "Elec Eng" tags-todo "ee")
+
+	("p" "Music Production" tags-todo "music")
 
 	("W" "Workflow"
 	 ((todo "PLAN"
@@ -82,6 +84,7 @@
 	;; Put mutually exclusive tags here
 	(:endgroup)
 	("computer" . ?d)
+	("learn" . ?l)
 	("write" . ?r)
 	("make" . ?f)
 	("ee" . ?w)

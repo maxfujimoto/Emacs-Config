@@ -33,7 +33,7 @@
 (require 'use-package))
 
 (setq use-package-always-ensure t)
-(setq use-package-verbose t)
+;(setq use-package-verbose t)
 
 ;-------   Completion   -------\
 (use-package vertico
@@ -154,12 +154,6 @@
   :hook (company-mode . company-box-mode))
 
 ;-------   Help   -------\
-(use-package which-key
-  :defer 0 
-  :diminish which-key-mode
-  :config
-  (which-key-mode)
-  (setq which-key-idle-delay 1.5))
 
 (use-package helpful
   :commands (helpful-callable helpful-variable helpful-command helpful-key)
