@@ -155,17 +155,25 @@
 
 ;-------   Help   -------\
 
-(use-package helpful
-  :commands (helpful-callable helpful-variable helpful-command helpful-key)
-  ;;  :custom                           ; for ivy
-  ;;  (describe-fucntion-function #'helpful-callable)
-  ;;  (describe-variable-function #'helpful-variable)
-  :bind
-  ([remap describe-function] . helpful-function)
-  ([remap describe-symbol] . helpful-symbol)
-  ([remap describe-variable] . helpful-variable)
-  ([remap describe-command] . helpful-command)
-  ([remap describe-key] . helpful-key))
+ (use-package helpful
+   :commands (helpful-callable helpful-variable helpful-command helpful-key)
+   ;;  :custom                           ; for ivy
+   ;;  (describe-fucntion-function #'helpful-callable)
+   ;;  (describe-variable-function #'helpful-variable)
+   :bind
+   ([remap describe-function] . helpful-function)
+   ([remap describe-symbol] . helpful-symbol)
+   ([remap describe-variable] . helpful-variable)
+   ([remap describe-command] . helpful-command)
+   ([remap describe-key] . helpful-key))
+
+(defun mf/info-mode-visual-fill ()
+  (setq visual-fill-column-width 160
+	visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
+
+(use-package info
+   :hook (Info-mode . mf/info-mode-visual-fill))
 
 ;-------   General Tools   -------\
 
