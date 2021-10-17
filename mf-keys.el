@@ -59,31 +59,48 @@
 
 ;-------   Which and Leader Keys   -------\
 
-     (mf/leader-keys
-       "t" '(:ignore t :which-key "toggles")
-       "f" '(:ignore t :which-key "find")
-;;       "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/emacs.org")))
-       "ts" '(hydra-text-scale/body :which-key "scale text")
-       "ff" '(hydra-find-file/body :which-key "find file")
-       "fd" '(hydra-find-dir/body :which-key "find directory"))
+(mf/leader-keys
+  "t" '(:ignore t :which-key "toggles")
+  "f" '(:ignore t :which-key "find")
+  "ts" '(hydra-text-scale/body :which-key "scale text")
+  "ff" '(hydra-find-file/body :which-key "find file")
+  "fd" '(hydra-find-dir/body :which-key "find directory")
+  "b" '(hydra-switch-buffer/body :which-key "switch buffer")
+  "w" '(hydra-switch-window/body :which-key "switch window"))
 
-     (defhydra hydra-text-scale (:timeout 4)
-       "scale text"
-       ("j" text-scale-increase "in")
-       ("k" text-scale-decrease "out")
-       ("<escape>" nil "finished" :exit t))
+(defhydra hydra-text-scale (:timeout 4)
+  "scale text"
+  ("j" text-scale-increase "in")
+  ("k" text-scale-decrease "out")
+  ("<escape>" nil "finished" :exit t))
 
-     (defhydra hydra-find-file (:timeout 4)
-       "select file"
-       ("e" (find-file (expand-file-name "~/.emacs.d/emacs.org"))"emacs.org" :exit t)
-       ("t" (find-file (expand-file-name "~/Org/todo.org"))"todo.org" :exit t)
-       ("n" (find-file (expand-file-name "~/Org/notes.org"))"notes.org" :exit t)
-       ("r" (find-file (expand-file-name "~/Documents/Recipe_Book/Recipe_Book_2/recipes.org"))"recipes.org" :exit t)
-       ("<escape>" nil "exit" :exit t))
+(defhydra hydra-find-file (:timeout 4)
+  "select file"
+  ("e" (find-file (expand-file-name "~/.emacs.d/emacs.org"))"emacs.org" :exit t)
+  ("t" (find-file (expand-file-name "~/Org/todo.org"))"todo.org" :exit t)
+  ("n" (find-file (expand-file-name "~/Org/notes.org"))"notes.org" :exit t)
+  ("r" (find-file (expand-file-name "~/Documents/Recipe_Book/Recipe_Book_2/recipes.org"))"recipes.org" :exit t)
+  ("<escape>" nil "exit" :exit t))
 
-     (defhydra hydra-find-dir (:timeout 4)
-       "scale text"
-       ("e" (dired (expand-file-name "~/.emacs.d"))".emacs.d" :exit t)
-       ("c" (dired (expand-file-name "~/Code"))"Code" :exit t)
-       ("p" (dired (expand-file-name "~/Documents/PDFs"))"PDFs" :exit t)
-       ("<escape>" nil "exit" :exit t))
+(defhydra hydra-find-dir (:timeout 4)
+  "select dir"
+  ("e" (dired (expand-file-name "~/.emacs.d"))".emacs.d" :exit t)
+  ("c" (dired (expand-file-name "~/Code"))"Code" :exit t)
+  ("p" (dired (expand-file-name "~/Documents/PDFs"))"PDFs" :exit t)
+  ("<escape>" nil "exit" :exit t))
+
+(defhydra hydra-switch-buffer (:timeout 4)
+  "switch buffer"
+  ("j" (switch-to-next-buffer)"next")
+  ("k" (switch-to-prev-buffer)"previous")
+  ("q" (delete-window)"close")
+  ("Q" (kill-this-buffer)"kill")
+  ("<escape>" nil "exit" :exit t))
+
+(defhydra hydra-switch-window (:timeout 4)
+  "switch window"
+  ("j" (other-window 1)"next")
+  ("k" (other-window -1)"previous")
+  ("q" (delete-window)"close") 
+  ("Q" (kill-this-buffer)"kill") 
+  ("<escape>" nil "exit" :exit t))
