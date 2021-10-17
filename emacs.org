@@ -216,6 +216,7 @@
     |-----------+-------------------------------------------------------------------|
     | Which-Key | Displays available next keystrokes for keybinds after 1.5 seconds |
     | Helpful   | Better documentation                                              |
+    | Info      | Padding for info mode                                             |
     
     #+begin_src emacs-lisp :tangle ./init.el
 
@@ -232,6 +233,14 @@
 	([remap describe-variable] . helpful-variable)
 	([remap describe-command] . helpful-command)
 	([remap describe-key] . helpful-key))
+
+     (defun mf/info-mode-visual-fill ()
+       (setq visual-fill-column-width 160
+	     visual-fill-column-center-text t)
+       (visual-fill-column-mode 1))
+
+     (use-package info
+	:hook (Info-mode . mf/info-mode-visual-fill))
 
     #+end_src
     
@@ -323,29 +332,8 @@
 
    #+end_src
 
-   
+
 * mf-gui.el
-
-** Theme
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Theme   -------\
-
-     (setq custom-theme-directory "~/.emacs.d/themes")
-
-     (use-package sublime-themes
-	:config
-	(load-theme 'brin t))
-
-     (use-package moe-theme
-       :defer 0)
-
-     (use-package doom-themes
-       :defer 0)
-
-   #+end_src
-
-
 
 ** GUI
 
@@ -365,6 +353,7 @@
      (global-display-line-numbers-mode t)
 
      (dolist (mode '(org-mode-hook
+		     Info-mode-hook
 		     term-mode-hook
 		     shell-mode-hook
 		     eshell-mode-hook
@@ -372,6 +361,33 @@
        (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
    #+end_src
+
+
+** Theme
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Theme   -------\
+     (setq custom-theme-directory "~/.emacs.d/themes")
+
+     ;; (use-package timu-spacegrey-theme
+     ;;   :ensure t
+     ;;   :config
+     ;;   (load-theme 'timu-spacegrey t))
+
+     (load-theme 'mf-spacegrey t)
+
+     ;; (use-package sublime-themes)
+     ;; ;;	:config
+     ;; ;;	(load-theme 'brin t))
+
+     ;; (use-package moe-theme
+     ;;   :defer 0)
+
+     ;; (use-package doom-themes
+     ;;   :defer 0)
+
+   #+end_src
+
 
 
 ** Gui Packages
@@ -526,10 +542,11 @@
      (mf/leader-keys
        "t" '(:ignore t :which-key "toggles")
        "f" '(:ignore t :which-key "find")
-;;       "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/emacs.org")))
        "ts" '(hydra-text-scale/body :which-key "scale text")
        "ff" '(hydra-find-file/body :which-key "find file")
-       "fd" '(hydra-find-dir/body :which-key "find directory"))
+       "fd" '(hydra-find-dir/body :which-key "find directory")
+       "b" '(hydra-switch-buffer/body :which-key "switch buffer")
+       "w" '(hydra-switch-window/body :which-key "switch window"))
 
      (defhydra hydra-text-scale (:timeout 4)
        "scale text"
@@ -546,10 +563,26 @@
        ("<escape>" nil "exit" :exit t))
 
      (defhydra hydra-find-dir (:timeout 4)
-       "scale text"
+       "select dir"
        ("e" (dired (expand-file-name "~/.emacs.d"))".emacs.d" :exit t)
        ("c" (dired (expand-file-name "~/Code"))"Code" :exit t)
        ("p" (dired (expand-file-name "~/Documents/PDFs"))"PDFs" :exit t)
+       ("<escape>" nil "exit" :exit t))
+
+     (defhydra hydra-switch-buffer (:timeout 4)
+       "switch buffer"
+       ("j" (switch-to-next-buffer)"next")
+       ("k" (switch-to-prev-buffer)"previous")
+       ("q" (delete-window)"close")
+       ("Q" (kill-this-buffer)"kill")
+       ("<escape>" nil "exit" :exit t))
+
+     (defhydra hydra-switch-window (:timeout 4)
+       "switch window"
+       ("j" (other-window 1)"next")
+       ("k" (other-window -1)"previous")
+       ("q" (delete-window)"close") 
+       ("Q" (kill-this-buffer)"kill") 
        ("<escape>" nil "exit" :exit t))
 
     #+end_src
@@ -768,6 +801,7 @@
   |---------------------------+----------------------------------------------|
   | mf/org-babel-tangle-conig | Aftersave hook to babel tangle to init files |
   | mf/xrdb-xresources        | Aftersave hook to reinit .Xresources         |
+  | mf/org-dropbox            | Run dropbox when any ~/Dropbox file is open  |
 
   - reset gc-cons-threshold to a reasonabe value
   #+begin_src emacs-lisp :tangle ./mf-sh.el
@@ -782,32 +816,33 @@
     (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'mf/org-babel-tangle-config)))
 
 
-    ;;  (defun mf/xrdb-xresources ()
-    ;;    (when (string-equal (file-name-directory (buffer-file-name)
-    ;; 					    (expand-file-name ~/.Xresources))
-    ;; 		   (let ((shell-command
+    (defun mf/xrdb-xresources ()
+      (when (string-equal (buffer-file-name)
+			  (expand-file-name "~/.dotfiles/.Xresources"))
+	(and (shell-command "xrdb ~/.Xresources")
+	     (message "xrdb updated"))))
 
-    ;; ;; (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'mf/xrdb-xresources)))
+
+    (add-hook 'conf-mode-hook (lambda () (add-hook 'after-save-hook #'mf/xrdb-xresources)))
 
 
-    ;;     ;(defun xrdb-xresources ()
-    ;;  "Running xrdb ~/.Xresources"
-    ;;  (when (eq major-mode 'conf-mode)
-    ;;    (shell-command-to-string (format "xrdb ~/.Xresources %s" buffer-file-name))))
+    ;; (defun mf/dropbox ()
+    ;;   (while (string-equal (file-name-directory)
+    ;; 		       (expand-file-name "~/Dropbox"))
+    ;;     (shell-command "dropbox")))
 
-    ;;(add-hook 'after-save-hook #'xrdb-xresources)
+    ;; (add-hook ??)
 
-    ;;(defvar xresrouces
-    ;; '(("~/.Xresources" . "xrdb ~/.Xresrouces"))
-    ;; )
+	 ;;     ;(defun xrdb-xresources ()
+	 ;;  "Running xrdb ~/.Xresources"
+	 ;;  (when (eq major-mode 'conf-mode)
+	 ;;    (shell-command-to-string (format "xrdb ~/.Xresources %s" buffer-file-name))))
 
-    ;;(defun xrdb-xresources ()
-    ;;  "xrdb ~/.Xresource"
-    ;;  (let* ((match (assoc (buffer-file-name) xresrouces)))
-    ;;    (when match
-    ;;      (shell-command (cdr match)))))
+	 ;;(defun xrdb-xresources ()
+	 ;;  "xrdb ~/.Xresource"
+	 ;;  (let* ((match (assoc (buffer-file-name) xresrouces)))
+	 ;;    (when match
+	 ;;      (shell-command (cdr match)))))
 
-	    ;(add-hook 'after-save-hook 'xrdb-xresources)
-
-    (setq gc-cons-threshold (* 2 1000 1000))
+	 (setq gc-cons-threshold (* 2 1000 1000))
   #+end_src
