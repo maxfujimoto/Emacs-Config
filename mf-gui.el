@@ -1,17 +1,3 @@
-;-------   Theme   -------\
-
-(setq custom-theme-directory "~/.emacs.d/themes")
-
-(use-package sublime-themes
-   :config
-   (load-theme 'brin t))
-
-(use-package moe-theme
-  :defer 0)
-
-(use-package doom-themes
-  :defer 0)
-
 ;-------   General   -------\
 
 ;;(setq inhibit-startup-message t)
@@ -27,11 +13,32 @@
 (global-display-line-numbers-mode t)
 
 (dolist (mode '(org-mode-hook
+		Info-mode-hook
 		term-mode-hook
 		shell-mode-hook
 		eshell-mode-hook
 		pdf-view-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+;-------   Theme   -------\
+(setq custom-theme-directory "~/.emacs.d/themes")
+
+;; (use-package timu-spacegrey-theme
+;;   :ensure t
+;;   :config
+;;   (load-theme 'timu-spacegrey t))
+
+(load-theme 'mf-spacegrey t)
+
+;; (use-package sublime-themes)
+;; ;;	:config
+;; ;;	(load-theme 'brin t))
+
+;; (use-package moe-theme
+;;   :defer 0)
+
+;; (use-package doom-themes
+;;   :defer 0)
 
 ;-------   GUI Packages   -------\
 
