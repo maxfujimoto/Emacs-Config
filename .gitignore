@@ -7,6 +7,7 @@
 **/elpa
 **/url
 **/transient
+**/.cache
 
 # Files
 history
