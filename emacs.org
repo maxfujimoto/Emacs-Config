@@ -22,7 +22,7 @@
 
 
 ** General
-   
+
    - Enables auto updating buffers
    - Sets default directory
      
@@ -383,7 +383,7 @@
 
      (load-theme 'mf-spacegrey t)
 
-     ;; (use-package sublime-themes)
+     ;; (use-package sublime-themes
      ;; ;;	:config
      ;; ;;	(load-theme 'brin t))
 
