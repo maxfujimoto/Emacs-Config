@@ -337,34 +337,41 @@
 
 ** GUI
 
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   General   -------\
+    #+begin_src emacs-lisp :tangle ./mf-gui.el
+					      ;-------   General   -------\
 
-     ;;(setq inhibit-startup-message t)
-     (scroll-bar-mode -1)
-     (menu-bar-mode -1)
-     (tool-bar-mode -1)
-     (global-set-key (kbd "<f5>") 'menu-bar-mode)
-     (set-fringe-mode 10)                    ; padding
-     (tooltip-mode -1)
-     ;;(setq visible-bell t)
+      ;;(setq inhibit-startup-message t)
+      (scroll-bar-mode -1)
+      (menu-bar-mode -1)
+      (tool-bar-mode -1)
+      (global-set-key (kbd "<f5>") 'menu-bar-mode)
+      (set-fringe-mode 10)                    ; padding
+      (tooltip-mode -1)
+      ;;(setq visible-bell t)
+      (setq ring-bell-function
+       (lambda ()
+	 (let ((orig-fg (face-foreground 'mode-line)))
+	   (set-face-foreground 'mode-line "#F2804F")
+	   (run-with-idle-timer 0.1 nil
+				(lambda (fg) (set-face-foreground 'mode-line fg))
+				orig-fg))))
 
-     (column-number-mode)
-     (global-display-line-numbers-mode t)
 
-     (dolist (mode '(org-mode-hook
-		     Info-mode-hook
-		     term-mode-hook
-		     shell-mode-hook
-		     eshell-mode-hook
-		     pdf-view-mode-hook))
-       (add-hook mode (lambda () (display-line-numbers-mode 0))))
+      (column-number-mode)
+      (global-display-line-numbers-mode t)
 
-   #+end_src
+      (dolist (mode '(org-mode-hook
+		      Info-mode-hook
+		      term-mode-hook
+		      shell-mode-hook
+		      eshell-mode-hook
+		      pdf-view-mode-hook))
+	(add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+    #+end_src
 
 
 ** Theme
-
    #+begin_src emacs-lisp :tangle ./mf-gui.el
 					     ;-------   Theme   -------\
      (setq custom-theme-directory "~/.emacs.d/themes")
