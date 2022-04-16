@@ -4,7 +4,8 @@
   (diminish 'org-indent-mode)
   ;;  (variable-pitch-mode 1)
   (visual-line-mode 1)
-  (setq evil-auto-indent nil))
+  (setq evil-auto-indent nil
+	org-adapt-indentation t))
 
 (defun mf/org-mode-visual-fill ()
   (setq visual-fill-column-width 100
