@@ -14,3 +14,11 @@ history
 forge-database.sqlite
 .lsp-session*
 session.*
+
+# babled files
+init.el
+mf-gui.el
+mf-keys.el
+mf-org.el
+mf-templates.el
+mf-sh.el
