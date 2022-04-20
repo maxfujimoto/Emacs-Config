@@ -21,20 +21,23 @@
    #+end_src
 
 
+
 ** General
 
-   - Enables auto updating buffers
-   - Sets default directory
+   - Enable auto updating buffers
+   - Configure auth-souce
      
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   General   -------\
-     (global-auto-revert-mode t)
 
-     ;;(setq default-directory "")
+     (global-auto-revert-mode t)
+     (setq global-auto-revert-non-file-buffers t)
+
+     (setq auth-sources '"~/Dropbox/Documents/Settings/Keys/.authinfo.gpg")
 
    #+end_src
 
-
+   
 ** Package Manager
 
    - Sets repository locations
