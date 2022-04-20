@@ -8,12 +8,14 @@
 **/url
 **/transient
 **/.cache
+**/emojis
 
 # Files
 history
 forge-database.sqlite
 .lsp-session*
 session.*
+recentf
 
 # babled files
 init.el
@@ -22,3 +24,4 @@ mf-keys.el
 mf-org.el
 mf-templates.el
 mf-sh.el
+mf-custom.el
