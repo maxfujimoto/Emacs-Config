@@ -46,7 +46,6 @@
    - use-package-verbose for verbose startup
        
    #+begin_src emacs-lisp :tangle ./init.el
-
 					     ;-------   Package Manager   -------\
 
      (require 'package)
@@ -87,7 +86,6 @@
      | Emacs      | Minibuffer settings                       |
 
      #+begin_src emacs-lisp :tangle ./init.el
-
 					       ;-------   Completion   -------\
        (use-package vertico
 	 :diminish
@@ -236,7 +234,6 @@
     | Info      | Padding for info mode                                             |
     
     #+begin_src emacs-lisp :tangle ./init.el
-
 					      ;-------   Help   -------\
 
       (use-package helpful
@@ -296,11 +293,9 @@
     | Magit      | Git porcilain               |
     | Forge      | Additional git features     |
 
-
-
-
     #+begin_src emacs-lisp :tangle ./init.el
 					      ;-------   Version Control   -------\
+
       (use-package projectile
 	:diminish projectile-mode
 	:config (projectile-mode)
@@ -451,7 +446,6 @@
      (setq custom-theme-directory (concat user-emacs-directory "themes"))
 
      ;; (use-package timu-spacegrey-theme
-     ;;   :ensure t
      ;;   :config
      ;;   (load-theme 'timu-spacegrey t))
 
@@ -546,53 +540,54 @@
    | Hydra            | Prefix bindings                  |
 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
-						  ;-------   Key Packages   -------\
+					     ;-------   Key Packages   -------\
 
-	  (use-package evil
-	    :init
-	    (setq evil-want-integration t)
-	    (setq evil-want-keybinding nil)
-	    (setq evil-want-C-u-scroll t)
-	    (setq evil-want-C-i-jump nil)
-	    (setq evil-mode-line-format 'before)
-	    (setq evil-disable-insert-state-bindings t)
-	    ;;(setq evil-undo-system undo-tree)
-	    :config
-	    (evil-mode 1)
-	    (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
-	    (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
+     (use-package evil
+       :init
+       (setq evil-want-integration t)
+       (setq evil-want-keybinding nil)
+       (setq evil-want-C-u-scroll t)
+       (setq evil-want-C-i-jump nil)
+       (setq evil-respect-visual-line-mode t)
+       (setq evil-mode-line-format 'before)
+       (setq evil-disable-insert-state-bindings t)
+       ;; (setq evil-undo-system 'undo-tree)
+       :config
+       (evil-mode 1)
+       (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
+       (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
 
-	    ;; Use visual line motions even outside of visual-line-mode buffers
-	    (evil-global-set-key 'motion "j" 'evil-next-visual-line)
-	    (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+       ;; Use visual line motions even outside of visual-line-mode buffers
+       (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+       (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
 
-	    (evil-set-initial-state 'messages-buffer-mode 'normal)
-	    (evil-set-initial-state 'dashboard-mode 'normal))
+       (evil-set-initial-state 'messages-buffer-mode 'normal)
+       (evil-set-initial-state 'dashboard-mode 'normal))
 
-	  (use-package evil-collection
-	    :after evil
-	    :diminish evil-collection-unimpaired-mode
-	    :config
-	    (evil-collection-init))
+     (use-package evil-collection
+       :after evil
+       :diminish evil-collection-unimpaired-mode
+       :config
+       (evil-collection-init))
 
-	  (use-package general
-	    :after evil
-	    :config
-	    (general-create-definer mf/leader-keys
-	      :keymaps '(normal insert visual emacs)
-	      :prefix "SPC"
-	      :global-prefix "C-SPC"
-	      ))
+     (use-package general
+       :after evil
+       :config
+       (general-create-definer mf/leader-keys
+	 :keymaps '(normal insert visual emacs)
+	 :prefix "SPC"
+	 :global-prefix "C-SPC"
+	 ))
 
-	   (use-package which-key
-	     :defer 0 
-	     :diminish which-key-mode
-	     :config
-	     (which-key-mode)
-	     (setq which-key-idle-delay 1.5))
+     (use-package which-key
+	:defer 0 
+	:diminish which-key-mode
+	:config
+	(which-key-mode)
+	(setq which-key-idle-delay 1.5))
 
-	  (use-package hydra
-	    :defer t)
+     (use-package hydra
+       :defer t)
 
    #+end_src
 
@@ -603,13 +598,17 @@
 					     ;-------   Key Binds   -------\
 
 
-  (evil-collection-define-key 'normal 'dired-mode-map
-    "h" 'dired-single-up-directory
-    "H" 'dired-omit-mode
-    "l" 'dired-single-buffer
-    "y" 'dired-ranger-copy
-    "X" 'dired-ranger-move
-    "p" 'dired-ranger-paste)
+     (evil-collection-define-key 'normal 'dired-mode-map
+       "h" 'dired-single-up-directory
+       "H" 'dired-omit-mode
+       "l" 'dired-single-buffer
+       "y" 'dired-ranger-copy
+       "X" 'dired-ranger-move
+       "p" 'dired-ranger-paste)
+
+
+     (recentf-mode 1)
+     (global-set-key (kbd "C-x M-f") 'recentf-open-files)
 
    #+end_src
 
@@ -727,7 +726,6 @@
 ** Org Packages
 
    #+begin_src emacs-lisp :tangle ./mf-org.el
-
 					     ;-------   Packages   -------\
 
      (use-package org
@@ -762,7 +760,6 @@
 ** Org Agenda
 
    #+begin_src emacs-lisp :tangle ./mf-org.el
-
 					     ;-------   Agenda   -------\
 
      (setq org-agenda-files
@@ -821,7 +818,6 @@
 ** Org Keys
 
    #+begin_src emacs-lisp :tangle ./mf-org.el
-
 					     ;-------   Org Keys   -------\
 
      ;;(add-to-list 'auto-mode-alist '("\\.org$" . org-mode))        
@@ -941,18 +937,8 @@
     ;; 		       (expand-file-name "~/Dropbox"))
     ;;     (shell-command "dropbox")))
 
-    ;; (add-hook ??)
-
-	 ;;     ;(defun xrdb-xresources ()
-	 ;;  "Running xrdb ~/.Xresources"
-	 ;;  (when (eq major-mode 'conf-mode)
-	 ;;    (shell-command-to-string (format "xrdb ~/.Xresources %s" buffer-file-name))))
-
-	 ;;(defun xrdb-xresources ()
-	 ;;  "xrdb ~/.Xresource"
-	 ;;  (let* ((match (assoc (buffer-file-name) xresrouces)))
-	 ;;    (when match
-	 ;;      (shell-command (cdr match)))))
+    ;; (lambda () (add-hook 'after-save-hook #'mf/dropbox)
 
 	 (setq gc-cons-threshold (* 2 1000 1000))
   #+end_src
+ 
