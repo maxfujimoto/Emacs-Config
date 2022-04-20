@@ -64,8 +64,10 @@
      (eval-when-compile
      (require 'use-package))
 
+     (require 'use-package-ensure)
      (setq use-package-always-ensure t)
-     ;(setq use-package-verbose t)	
+     
+     (setq use-package-verbose t)	
 
    #+end_src
 
@@ -423,7 +425,7 @@
       (setq ring-bell-function
        (lambda ()
 	 (let ((orig-fg (face-foreground 'mode-line)))
-	   (set-face-foreground 'mode-line "#F2804F")
+	   (set-face-foreground 'mode-line "#fd5300")
 	   (run-with-idle-timer 0.1 nil
 				(lambda (fg) (set-face-foreground 'mode-line fg))
 				orig-fg))))
