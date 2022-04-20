@@ -265,24 +265,23 @@
     | Package   | Descrition                     |
     |-----------+--------------------------------|
     | Undo-Tree | Visualization of undo branches |
-    | Pdf-Tools | Pdf support                    |
 
     #+begin_src emacs-lisp :tangle ./init.el
-
 					      ;-------   General Tools   -------\
 
-      (use-package undo-tree
-	:defer t) 
+      ;; (defun mf/undo-tree-visualizer-toggle ()
+      ;;   (interactive)
+      ;;   (if (get-buffer undo-tree-visualizer-buffer-name)
+      ;;       (undo-tree-visualizer-quit)
+      ;;     (undo-tree-visualize)))
 
-      (use-package pdf-tools
-	:defer t
-	:pin manual ;; manually update
-	:mode ("\\.pdf\\'" . pdf-view-mode)
-	:config
-	(pdf-tools-install)
-	(setq-default pdf-view-display-size 'fit-page)
-	(setq pdf-annot-activate-created-annotations t)
-	(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward))
+      (use-package undo-tree
+	:disabled
+	:diminish
+	:after evil
+	:init (global-undo-tree-mode)
+	:bind (:map evil-normal-state-map
+		    ("U" . mf/undo-tree-visualizer-toggle)))
 
     #+end_src
 
@@ -322,6 +321,7 @@
     #+end_src
 
 
+
 ** Load Paths
    - Paths of other elsip init files
 
@@ -340,10 +340,22 @@
   
 ** File Types
 
+    | Package   | Descrition                     |
+    |-----------+--------------------------------|
+    | Pdf-Tools | Pdf support                    |
+
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   File Types   -------\
 
-   ;;  (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode))
+      (use-package pdf-tools
+	:defer t
+	:pin manual ;; manually update
+	:mode ("\\.pdf\\'" . pdf-view-mode)
+	:config
+	(pdf-tools-install)
+	(setq-default pdf-view-display-size 'fit-page)
+	(setq pdf-annot-activate-created-annotations t)
+	(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward))
 
    #+end_src
 
