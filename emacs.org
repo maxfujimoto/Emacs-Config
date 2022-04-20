@@ -369,14 +369,16 @@
    - Paths of other elsip init files
 
    #+begin_src emacs-lisp :tangle ./init.el
+						  ;-------   Load Paths   -------\
 
-					     ;-------   Load Paths   -------\
+	  (load (concat user-emacs-directory "mf-gui.el"))
+	  (load (concat user-emacs-directory "mf-keys.el"))
+	  (load (concat user-emacs-directory "mf-templates.el"))
+	  (load (concat user-emacs-directory "mf-org.el"))
+	  (load (concat user-emacs-directory "mf-sh.el"))
 
-     (load "~/.emacs.d/mf-gui.el")
-     (load "~/.emacs.d/mf-keys.el")
-     (load "~/.emacs.d/mf-templates.el")
-     (load "~/.emacs.d/mf-org.el")
-     (load "~/.emacs.d/mf-sh.el")
+	  (setq custom-file (locate-user-emacs-file "mf-custom.el"))
+	  (load custom-file 'noerror 'nomessage)
 
    #+end_src
    
@@ -444,7 +446,7 @@
 ** Theme
    #+begin_src emacs-lisp :tangle ./mf-gui.el
 					     ;-------   Theme   -------\
-     (setq custom-theme-directory "~/.emacs.d/themes")
+     (setq custom-theme-directory (concat user-emacs-directory "themes"))
 
      ;; (use-package timu-spacegrey-theme
      ;;   :ensure t
@@ -637,7 +639,7 @@
 
      (defhydra hydra-find-file (:timeout 4)
        "select file"
-       ("e" (find-file (expand-file-name "~/.emacs.d/emacs.org"))"emacs.org" :exit t)
+       ("e" (find-file (expand-file-name (concat user-emacs-directory "emacs.org")))"emacs.org" :exit t)
        ("t" (find-file (expand-file-name "~/Org/todo.org"))"todo.org" :exit t)
        ("n" (find-file (expand-file-name "~/Org/notes.org"))"notes.org" :exit t)
        ("r" (find-file (expand-file-name "~/Documents/Recipe_Book/Recipe_Book_2/recipes.org"))"recipes.org" :exit t)
@@ -645,7 +647,7 @@
 
      (defhydra hydra-find-dir (:timeout 4)
        "select dir"
-       ("e" (dired (expand-file-name "~/.emacs.d"))".emacs.d" :exit t)
+       ("e" (dired (expand-file-name user-emacs-directory))"emacs" :exit t)
        ("c" (dired (expand-file-name "~/Code"))"Code" :exit t)
        ("p" (dired (expand-file-name "~/Documents/PDFs"))"PDFs" :exit t)
        ("<escape>" nil "exit" :exit t))
