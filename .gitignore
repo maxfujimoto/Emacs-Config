@@ -16,6 +16,9 @@ forge-database.sqlite
 .lsp-session*
 session.*
 recentf
+bookmarks
+org-roam.db
+.org-id-locations
 
 # babled files
 init.el
