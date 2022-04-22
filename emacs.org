@@ -29,9 +29,12 @@
      
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   General   -------\
+     
+     (use-package autorevert)
 
-     (global-auto-revert-mode t)
+     (setq global-auto-revert-ignore-modes (list 'Buffer-menu-mode))
      (setq global-auto-revert-non-file-buffers t)
+     (global-auto-revert-mode t)
 
      (setq auth-sources '"~/Dropbox/Documents/Settings/Keys/.authinfo.gpg")
 
@@ -433,6 +436,14 @@
       (column-number-mode)
       (global-display-line-numbers-mode t)
 
+      (setq ring-bell-function
+	    (lambda ()
+	      (let ((orig-fg (face-foreground 'mode-line)))
+		(set-face-foreground 'mode-line "#fd5300")
+		(run-with-idle-timer 0.1 nil
+				     (lambda (fg) (set-face-foreground 'mode-line fg))
+				     orig-fg))))
+
       (dolist (mode '(org-mode-hook
 		      Info-mode-hook
 		      term-mode-hook
@@ -484,7 +495,7 @@
      (use-package diminish)
 
      (eval-after-load "eldoc"
-	'(diminish 'eldoc-mode))
+       '(diminish 'eldoc-mode))
 
      (diminish 'abbrev-mode)
 
@@ -494,8 +505,8 @@
 
      (use-package mlscroll
        :config
-     ;;  breaks evil status indicator
-     ;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
+       ;;  breaks evil status indicator
+       ;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
        (mlscroll-mode 1))
 
      (use-package dired
