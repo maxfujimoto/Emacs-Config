@@ -506,6 +506,13 @@
 
      (autoload 'dired-omit-mode "dired-x")	
 
+     (use-package perspective
+       :ensure t
+       :custom
+       (persp-mode-prefix-key (kbd "C-x x")) 
+       :bind (("C-x k" . persp-kill-buffer*))
+       :init
+       (persp-mode))
      (use-package dired-single
        :commands (dired dired-jump))
 
