@@ -1,6 +1,7 @@
 # File Types
 *~
 *.eld
+*bak
 
 # Folders
 **/auto-save-list
