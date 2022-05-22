@@ -1,15 +1,18 @@
-#+title: Emacs Config
+#+title: Emax Config
 
 * init.el
 
 ** Startup
 
+   - Changes garbage collection threshold
+     - The default is 800 000 bytes.
+   - Displays Emacs load time and gcs.
+   - Inhibit startup Message
+
    #+begin_src emacs-lisp :tangle ./init.el
 
-     ;; The default is 800 kilobytes.  Measured in bytes.
      (setq gc-cons-threshold (* 50 1000 1000))
 
-     ;; Profile emacs startup
      (add-hook 'emacs-startup-hook
 	       (lambda ()
 		 (message "*** Emacs loaded in %s with %d garbage collections."
@@ -18,13 +21,55 @@
 				   (time-subtract after-init-time before-init-time)))
 			  gcs-done)))
 
+     (setq inhibit-startup-message t) 
    #+end_src
 
+
+** Package Manager
+
+   | Package            | Description                                     |
+   |--------------------+-------------------------------------------------|
+   | Package            | The Emacs package utility                       |
+   | Use-Package        | Macros for cleaner init files                   |
+   | Use-Package-Ensure | Ensures all use-packaged packages are installed |
+   
+   - Sets package repository locations
+   - Install use-package if not installed
+   - use-package-verbose for annoying messages (helpful for startup)
+       
+   #+begin_src emacs-lisp :tangle ./init.el
+					     ;-------   Package Manager   -------\
+
+     (require 'package)
+
+     (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+			      ("melpa" . "https://melpa.org/packages/")
+			      ("org" . "https://orgmode.org/elpa/")
+			      ("melpa-stable" . "https://stable.melpa.org/packages/")))
+
+     (package-initialize)
+
+     (unless package-archive-contents
+       (package-refresh-contents))
+
+     (unless (package-installed-p 'use-package)
+       (package-install 'use-package))
+
+     (eval-when-compile
+     (require 'use-package))
+
+     (require 'use-package-ensure)
+     (setq use-package-always-ensure t)
+
+     (setq use-package-verbose t)	
+
+   #+end_src
 
 
 ** General
 
-   - Enable auto updating buffers
+   - Enable buffer autorevert (autoupdate)
+     - Disable Auto reverting in Buffer-menu-mode
    - Configure auth-souce
      
    #+begin_src emacs-lisp :tangle ./init.el
@@ -41,60 +86,28 @@
    #+end_src
 
    
-** Package Manager
-
-   - Sets repository locations
-   - Initializes use package
-     - Dowload packages if not installed
-   - use-package-verbose for verbose startup
-       
-   #+begin_src emacs-lisp :tangle ./init.el
-					     ;-------   Package Manager   -------\
-
-     (require 'package)
-     (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
-			      ("melpa" . "https://melpa.org/packages/")
-			      ("org" . "https://orgmode.org/elpa/")
-			      ("melpa-stable" . "https://stable.melpa.org/packages/")))
-     (package-initialize)
-     (unless package-archive-contents
-       (package-refresh-contents))
-
-     (unless (package-installed-p 'use-package)
-       (package-install 'use-package))
-
-     (eval-when-compile
-     (require 'use-package))
-
-     (require 'use-package-ensure)
-     (setq use-package-always-ensure t)
-     
-     (setq use-package-verbose t)	
-
-   #+end_src
-
-
 ** Packages
 
 *** Completion
 
 **** General
 
-     | Package    | Description                               |
-     |------------+-------------------------------------------|
-     | Vertico    | Minimal completion                        |
-     | SaveHist   | Saves minibuffer history                  |
-     | Marginalia | Additional completion support             |
-     | Orderless  | Orderless and wildcard completion support |
-     | Emacs      | Minibuffer settings                       |
+     | Package    | Description                                   |
+     |------------+-----------------------------------------------|
+     | Vertico    | Vertical mini-buffer completion               |
+     | SaveHist   | Saves minibuffer history                      |
+     | Marginalia | Additional mini-buffer completion information |
+     | Orderless  | Orderless and wildcard completion support     |
+     | Consult    | Further mini-buffer completion                |
+     | Corfu      | Completion in region                          |
+     | Emacs      | Minibuffer settings                           |
 
      #+begin_src emacs-lisp :tangle ./init.el
 					       ;-------   Completion   -------\
+
        (use-package vertico
 	 :diminish
 	 :bind (:map vertico-map
-		     ;; ("" . vertico-next)
-		     ;; ("" . vertico-previous)
 		     ("C-f" . vertico-exit))
 	 :custom
 	 (vertico-cycle t)
@@ -135,6 +148,21 @@
 	 (consult-project-root-function #'mf/get-project-root)
 	 (completion-in-region-function #'consult-completion-in-region))
 
+       (use-package corfu
+	 :bind (:map corfu-map
+		     ("C-n" . corfu-next)
+		     ("C-p" . corfu-previous)
+		     ("C-d"  . corfu-quit))
+	 :custom
+	 (corfu-cycle t)
+	 (corfu-auto t)
+	 (corfu-auto-delay .5)
+	 (corfu-auto-prefix 1)
+	 :config
+	 (corfu-global-mode)
+	 :hook
+	 (after-init . corfu-global-mode))
+
        (use-package emacs
 	 :init
 	 ;; Add prompt indicator to `completing-read-multiple'.
@@ -159,48 +187,53 @@
      #+end_src
 
 
+**** Spelling
+
+- Set $DICPATH to "$HOME/Documents/Dictionaries" for hunspell.
+- Tell ispell-mode to use hunspell.
+
+     #+begin_src emacs-lisp :tangle ./init.el
+
+       (setenv
+	"DICPATH"
+	(concat (getenv "HOME") "/Documents/Dictionaries"))
+
+       (setq ispell-program-name "/usr/bin/hunspell")
+
+       (use-package flyspell
+	 :hook ((org-mode . flyspell-mode)
+		(text-mode . flyspell-mode)
+		(prog-mode . flyspell-prog-mode))) 
+
+     #+end_src
+
+
 **** LSP
 
      #+begin_src emacs-lisp :tangle ./init.el
 					       ;-------   LSP   -------\
 
-	;; (defun mf/lsp-mode-setup ()
-	;;   (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
-	;;   (lsp-headerline-breadcrumb-mode))
-
-	(use-package lsp-mode
-	  :disabled
-	  :commands (lsp lsp-deferred)
-	  :hook ((lsp-mode . mf/lsp-mode-setup)
-		 ((js-mode web-mode) . lsp))
-	  :init
-	  (setq lsp-keymap-prefix "C-c l")  ;; Or 'C-l', 's-l'
-	  :config
-	  (lsp-enable-which-key-integration t))
-
        (use-package eglot
-	 :hook ((c-mode c++mode obj-mode cuda-mode js-mode) . eglot-ensure)
+	 :hook ((c-mode c++mode obj-mode cuda-mode js-mode web-mode) . eglot-ensure)
 	 :config (add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd"))) 
 
-       ;; (use-package web-mode
-       ;;   :mode "\\.html?\\'"
-       ;;   ;; :mode "\\\\.(html?\\|ejs\\|tsx\\|jsx\\)\\'"
-       ;;   :config
-       ;;   (setq-default web-mode-code-indent-offset 2)
-       ;;   (setq-default web-mode-markup-indent-offset 2)
-       ;;   (setq-default web-mode-attribute-indent-offset 2))
+       (use-package web-mode
+	 :mode "\\.html?\\'"
+	 ;; :mode "\\\\.(html?\\|ejs\\|tsx\\|jsx\\)\\'"
+	 :config
+	 (setq-default web-mode-code-indent-offset 2)
+	 (setq-default web-mode-markup-indent-offset 2)
+	 (setq-default web-mode-attribute-indent-offset 2))
 
-       ;; ;; 1. Start the server with `httpd-start'
-       ;; ;; 2. Use `impatient-mode' on any buffer
-       ;; (use-package impatient-mode
-       ;;   ;;:mode "\\.html?\\'")
-       ;;   :mode "(\\.\\(html?\\|ejs\\|tsx\\|jsx\\)\\'")
+       ;; 1. Start the server with `httpd-start'
+       ;; 2. Use `impatient-mode' on any buffer
+       (use-package impatient-mode
+	 ;;:mode "\\.html?\\'")
+	 :mode "(\\.\\(html?\\|ejs\\|tsx\\|jsx\\)\\'")
 
-       ;; (use-package skewer-mode
-       ;;   ;;:mode "\\.html?\\'")
-       ;;   :mode "(\\.\\(html?\\|ejs\\|tsx\\|jsx\\)\\'")
-
-       ;; ;; lsp-install-server html-ls
+       (use-package skewer-mode
+	 ;;:mode "\\.html?\\'")
+	 :mode "(\\.\\(html?\\|ejs\\|tsx\\|jsx\\)\\'")
 
        (use-package python-mode
 	 :hook (python-mode . eglot-ensure)
@@ -209,22 +242,6 @@
 	 (python-shell-interpreter "python3")
 	 (dap-python-executable "python3"))
 
-       (use-package company
-	 :defer t
-	 :diminish 
-	 :hook (eglot-managed-mode . company-mode)
-	 :bind (:map company-active-map
-		     ("<tab>" . company-complete-selection)
-		     :map eglot-mode-map
-		     ("<tab>" . company-indent-or-complete-common))
-	 :custom
-	 (company-minimum-prefix-length 1)
-	 (company-idle-delay 1.0))
-
-       (use-package company-box
-	 :diminish 
-	 :hook (company-mode . company-box-mode))
-
      #+end_src
      
      
@@ -232,18 +249,14 @@
     
     | Package   | Description                                                       |
     |-----------+-------------------------------------------------------------------|
-    | Which-Key | Displays available next keystrokes for keybinds after 1.5 seconds |
     | Helpful   | Better documentation                                              |
     | Info      | Padding for info mode                                             |
-    
+
     #+begin_src emacs-lisp :tangle ./init.el
 					      ;-------   Help   -------\
 
       (use-package helpful
 	:commands (helpful-callable helpful-variable helpful-command helpful-key)
-	;;  :custom                           ; for ivy
-	;;  (describe-fucntion-function #'helpful-callable)
-	;;  (describe-variable-function #'helpful-variable)
 	:bind
 	([remap describe-function] . helpful-function)
 	([remap describe-symbol] . helpful-symbol)
@@ -251,43 +264,18 @@
 	([remap describe-command] . helpful-command)
 	([remap describe-key] . helpful-key))
 
-     (defun mf/info-mode-visual-fill ()
-       (setq visual-fill-column-width 160
-	     visual-fill-column-center-text t)
-       (visual-fill-column-mode 1))
 
-     (use-package info
+      (defun mf/info-mode-visual-fill ()
+	(setq visual-fill-column-width 160
+	      visual-fill-column-center-text t)
+	(visual-fill-column-mode 1))
+
+      (use-package info
 	:hook (Info-mode . mf/info-mode-visual-fill))
 
     #+end_src
+
     
-
-*** General Tools
-
-    | Package   | Descrition                     |
-    |-----------+--------------------------------|
-    | Undo-Tree | Visualization of undo branches |
-
-    #+begin_src emacs-lisp :tangle ./init.el
-					      ;-------   General Tools   -------\
-
-      ;; (defun mf/undo-tree-visualizer-toggle ()
-      ;;   (interactive)
-      ;;   (if (get-buffer undo-tree-visualizer-buffer-name)
-      ;;       (undo-tree-visualizer-quit)
-      ;;     (undo-tree-visualize)))
-
-      (use-package undo-tree
-	:disabled
-	:diminish
-	:after evil
-	:init (global-undo-tree-mode)
-	:bind (:map evil-normal-state-map
-		    ("U" . mf/undo-tree-visualizer-toggle)))
-
-    #+end_src
-
-
 *** Version Control
 
     | Package    | Description                 |
@@ -342,14 +330,13 @@
 					     ;-------   ERC   -------\
 
      (use-package erc
-       :ensure t
        :init
        (setq erc-server "irc.libera.chat"
 	     ;; erc-nick ""
 	     ;; erc-user-full-name ""
 
 	     erc-track-shorten-start 8	; Length of channel notifcation in mode-line
-	     ;; erc-autojoin-channels-alist '(("irc.libera.chat" "#systemcrafters" "#emacs" "#buddhism"))
+	     ;; erc-autojoin-channels-alist '(("irc.libera.chat" "#systemcrafters" "#emacs"))
 	     erc-kill-buffer-on-part t
 	     erc-auto-query 'bury		; No auto-focus buffer when mentioned	
 	     erc-fill-column 79		; Defualt 
@@ -362,16 +349,15 @@
        (add-to-list 'erc-modules 'spelling)
        (erc-services-mode 1)
        (erc-update-modules))
+
 					     ;-------   ERC Packages   -------\
 
      (use-package erc-hl-nicks
-       :ensure t
        :after erc
        :config
        (add-to-list 'erc-modules 'hl-nicks))
 
      (use-package erc-image
-       :ensure t
        :after erc
        :config
        (setq erc-image-inline-rescale 300)
@@ -386,10 +372,10 @@
    #+begin_src emacs-lisp :tangle ./init.el
 						  ;-------   Load Paths   -------\
 
-	  (load (concat user-emacs-directory "mf-gui.el"))
 	  (load (concat user-emacs-directory "mf-keys.el"))
-	  (load (concat user-emacs-directory "mf-templates.el"))
 	  (load (concat user-emacs-directory "mf-org.el"))
+	  (load (concat user-emacs-directory "mf-gui.el"))
+	  (load (concat user-emacs-directory "mf-templates.el"))
 	  (load (concat user-emacs-directory "mf-sh.el"))
 
 	  (setq custom-file (locate-user-emacs-file "mf-custom.el"))
@@ -400,153 +386,27 @@
   
 ** File Types
 
-    | Package   | Descrition                     |
-    |-----------+--------------------------------|
-    | Pdf-Tools | Pdf support                    |
+    | Package                 | Descrition  |
+    |-------------------------+-------------|
+    | Pdf-Tools               | Pdf support |
+    |                         | Handling for .ino files |
 
    #+begin_src emacs-lisp :tangle ./init.el
-					     ;-------   File Types   -------\
+					    ;-------   File Types   -------\
 
-      (use-package pdf-tools
-	:defer t
-	:pin manual ;; manually update
-	:mode ("\\.pdf\\'" . pdf-view-mode)
-	:config
-	(pdf-tools-install)
-	(setq-default pdf-view-display-size 'fit-page)
-	(setq pdf-annot-activate-created-annotations t)
-	(define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward))
-
-   #+end_src
-
-
-* mf-gui.el
-
-** GUI
-
-    #+begin_src emacs-lisp :tangle ./mf-gui.el
-					      ;-------   General   -------\
-
-      (scroll-bar-mode -1)
-      (menu-bar-mode -1)
-      (tool-bar-mode -1)
-      (global-set-key (kbd "<f5>") 'menu-bar-mode)
-      (set-fringe-mode 10)                    ; padding
-      (tooltip-mode -1)
-      (column-number-mode)
-      (global-display-line-numbers-mode t)
-
-      (setq ring-bell-function
-	    (lambda ()
-	      (let ((orig-fg (face-foreground 'mode-line)))
-		(set-face-foreground 'mode-line "#fd5300")
-		(run-with-idle-timer 0.1 nil
-				     (lambda (fg) (set-face-foreground 'mode-line fg))
-				     orig-fg))))
-
-      (dolist (mode '(org-mode-hook
-		      Info-mode-hook
-		      term-mode-hook
-		      shell-mode-hook
-		      eshell-mode-hook
-		      vterm-mode-hook
-		      pdf-view-mode-hook))
-	(add-hook mode (lambda () (display-line-numbers-mode 0))))
-
-    #+end_src
-
-
-** Theme
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Theme   -------\
-     (setq custom-theme-directory (concat user-emacs-directory "themes"))
-
-     ;; (use-package timu-spacegrey-theme
-     ;;   :config
-     ;;   (load-theme 'timu-spacegrey t))
-
-     (load-theme 'mf-spacegrey t)
-
-     ;; (use-package sublime-themes
-     ;; ;;	:config
-     ;; ;;	(load-theme 'brin t))
-
-     ;; (use-package moe-theme
-     ;;   :defer 0)
-
-     ;; (use-package doom-themes
-     ;;   :defer 0)
-
-   #+end_src
-
-
-
-** Gui Packages
-
-   | Package            | Description                              |
-   |--------------------+------------------------------------------|
-   | Diminish           | Hide selected modes from modeline        |
-   | Rainbow-Delimiters | Color parethesies                        |
-   | mlscroll           | Document location indicator for modeline |
-   
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   GUI Packages   -------\
-
-     (use-package diminish)
-
-     (eval-after-load "eldoc"
-       '(diminish 'eldoc-mode))
-
-     (diminish 'abbrev-mode)
-
-     (use-package rainbow-delimiters
-       :diminish
-       :hook (prog-mode . rainbow-delimiters-mode))
-
-     (use-package mlscroll
+     (use-package pdf-tools
+       :defer t
+       :pin manual ;; manually update
+       :mode ("\\.pdf\\'" . pdf-view-mode)
        :config
-       ;;  breaks evil status indicator
-       ;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
-       (mlscroll-mode 1))
+       (pdf-tools-install)
+       (setq-default pdf-view-display-size 'fit-page)
+       (setq pdf-annot-activate-created-annotations t)
+       (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward))
 
-     (use-package dired
-       :ensure nil
-       :commands (dired dired-jump)
-       :bind (("C-x C-j" . dired-jump))
-       :custom ((dired-listing-switches "-agho --group-directories-first")))
-
-     (autoload 'dired-omit-mode "dired-x")	
-
-     (use-package perspective
-       :ensure t
-       :custom
-       (persp-mode-prefix-key (kbd "C-x x")) 
-       :bind (("C-x k" . persp-kill-buffer*))
-       :init
-       (persp-mode))
-     (use-package dired-single
-       :commands (dired dired-jump))
-
-     (use-package dired-ranger
-       :defer t)
-
-     (use-package dired-collapse
-       :defer t)
-
-     (use-package emojify
-       :ensure t
-       :hook (erc-mode . emojify-mode)
-       :commands emojify-mode)
-
-   #+end_src 
-
- 
-** Fonts
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					;-------   Fonts    -------\
-
-;(set-face-attribute 'default nil :font "FONT NAME" :height ##)
+     (add-to-list 'auto-mode-alist
+		  '("\\.ino\\'" . (lambda ()
+				    (c-mode))))
 
    #+end_src
 
@@ -555,12 +415,13 @@
 
 ** Key Packages
 
-   | Package          | Description                      |
-   |------------------+----------------------------------|
-   | Evil             | Extensible VIm Layers            |
-   | Evili Collection | Additional mode support for Evil |
-   | General          | Leader keys                      |
-   | Hydra            | Prefix bindings                  |
+   | Package          | Description                                                       |
+   |------------------+-------------------------------------------------------------------|
+   | Evil             | Extensible VIm Layers                                             |
+   | Evil Collection  | Additional mode support for Evil                                  |
+   | General          | Leader keys                                                       |
+   | Which-Key        | Displays available next keystrokes for keybinds after 1.5 seconds |
+   | Hydra            | Prefix bindings                                                   |
 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Key Packages   -------\
@@ -572,7 +433,7 @@
        (setq evil-want-C-u-scroll t)
        (setq evil-want-C-i-jump nil)
        (setq evil-respect-visual-line-mode t)
-       (setq evil-mode-line-format 'before)
+       (setq evil-mode-line-format '(before . mode-line-front-space))
        (setq evil-disable-insert-state-bindings t)
        ;; (setq evil-undo-system 'undo-tree)
        :config
@@ -599,8 +460,7 @@
        (general-create-definer mf/leader-keys
 	 :keymaps '(normal insert visual emacs)
 	 :prefix "SPC"
-	 :global-prefix "C-SPC"
-	 ))
+	 :global-prefix "C-SPC"))
 
      (use-package which-key
 	:defer 0 
@@ -617,9 +477,11 @@
 
 ** Binds
 
+   - Vim binds for dired.
+   - Open 'Recent Files' buffer. 
+ 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Key Binds   -------\
-
 
      (evil-collection-define-key 'normal 'dired-mode-map
        "h" 'dired-single-up-directory
@@ -629,6 +491,8 @@
        "X" 'dired-ranger-move
        "p" 'dired-ranger-paste)
 
+     (evil-define-key 'normal 'helpful-mode-map
+       (kbd "q") #'kill-buffer-and-window)
 
      (recentf-mode 1)
      (global-set-key (kbd "C-x M-f") 'recentf-open-files)
@@ -753,6 +617,7 @@
 
      (use-package org
        :pin org
+       :custom (org-directory "~/Org")
        :commands (org-capture org-agenda)
        :hook (org-mode . mf/org-mode-setup)
        :config (setq org-startup-folded t
@@ -778,16 +643,41 @@
        :hook (org-mode . mf/org-mode-visual-fill))
 
      (use-package org-roam
-       :custom
-       (org-roam-directory "~/Org/Roam")
-       (org-roam-completion-everywhere t)
-       :bind (("C-c n l" . org-roam-buffer-toggle)
-	      ("C-c n f" . org-roam-node-find)
-	      ("C-c n i" . org-roam-node-insert)
-	      :map org-mode-map
-	      ("C-M-i"    . completion-at-point))
-       :config
-       (org-roam-setup))
+	:custom
+	(org-roam-directory "~/Org/Roam")
+	(org-roam-completion-everywhere t)
+	(org-roam-capture-templates
+	 '(("p" "plain" plain
+	    "%?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)
+	   ("d" "Definition" plain
+	    "\n* Definition\n\n  - %?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :empty-lines 1
+	    :unnarrowed t)
+	   ("D" "Symbols Definition" plain
+	    "#+options: ^:{}\n#+startup: entitiespretty\n* nDefinition\n\n  - %?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)
+	   ("l" "Logic" plain
+	    "#+options: ^:{}\n#+startup: entitiespretty\n\n- A %?\n\n- B "
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)))
+
+	:bind (("C-c n l" . org-roam-buffer-toggle)
+	       ("C-c n f" . org-roam-node-find)
+	       ("C-c n i" . org-roam-node-insert)
+	       :map org-mode-map
+	       ("M-TAB"    . completion-at-point))
+	:config
+	(org-roam-setup))
+
+     (with-eval-after-load 'org
+     (org-babel-do-load-languages
+      'org-babel-load-languages
+      '((emacs-lisp . t)
+	(C . t))))
 
    #+end_src
 
@@ -855,12 +745,161 @@
    #+begin_src emacs-lisp :tangle ./mf-org.el
 					     ;-------   Org Keys   -------\
 
-     ;;(add-to-list 'auto-mode-alist '("\\.org$" . org-mode))        
      ;;(define-key global-map "\C-cl" 'org-store-link)
      (define-key global-map "\C-ca" 'org-agenda)
      (define-key global-map "\C-cc" 'org-capture)
      ;;(define-key global-map (kbd "C-c c")
      ;;    (lambda () (interactive) (org-capture nil "jj")))
+   #+end_src
+
+
+* mf-gui.el
+
+** GUI
+
+   - Remove all visual bloat
+
+   - Flash Mode-Line instead of ring bell
+
+   - Set Vim layer indicator faces
+   
+    #+begin_src emacs-lisp :tangle ./mf-gui.el
+					      ;-------   General   -------\
+
+      (scroll-bar-mode -1)
+      (menu-bar-mode -1)
+      (tool-bar-mode -1)
+      (global-set-key (kbd "<f5>") 'menu-bar-mode)
+      (set-fringe-mode 10)                    ; padding
+      (tooltip-mode -1)
+      (column-number-mode)
+      (global-display-line-numbers-mode t)
+
+      (setq ring-bell-function
+	    (lambda ()
+	      (let ((orig-fg (face-foreground 'mode-line)))
+		(set-face-foreground 'mode-line "#fd5300")
+		(run-with-idle-timer 0.1 nil
+				     (lambda (fg) (set-face-foreground 'mode-line fg))
+				     orig-fg))))
+
+      (setq evil-normal-state-tag
+	    (propertize " <N> " 'face '((:background "DarkGoldenrod2" :foreground "black")))
+	    evil-emacs-state-tag
+	    (propertize " <E> " 'face '((:background "SkyBlue2"       :foreground "black")))
+	    evil-insert-state-tag
+	    (propertize " <I> " 'face '((:background "chartreuse3"    :foreground "black")))
+	    evil-replace-state-tag
+	    (propertize " <R> " 'face '((:background "chocolate"      :foreground "black")))
+	    evil-motion-state-tag
+	    (propertize " <M> " 'face '((:background "plum3"          :foreground "black")))
+	    evil-visual-state-tag
+	    (propertize " <V> " 'face '((:background "gray"           :foreground "black")))
+	    evil-operator-state-tag
+	    (propertize " <O> " 'face '((:background "sandy brown"    :foreground "black"))))
+
+      (dolist (mode '(org-mode-hook
+		      Info-mode-hook
+		      term-mode-hook
+		      shell-mode-hook
+		      eshell-mode-hook
+		      vterm-mode-hook
+		      pdf-view-mode-hook))
+	(add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+    #+end_src
+
+
+** Theme
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Theme   -------\
+     (setq custom-theme-directory (concat user-emacs-directory "themes"))
+
+     ;; (use-package timu-spacegrey-theme
+     ;;   :config
+     ;;   (load-theme 'timu-spacegrey t))
+
+     (load-theme 'mf-spacegrey t)
+
+     ;; (use-package sublime-themes
+     ;; ;;	:config
+     ;; ;;	(load-theme 'brin t))
+
+     ;; (use-package moe-theme
+     ;;   :defer 0)
+
+     ;; (use-package doom-themes
+     ;;   :defer 0)
+
+   #+end_src
+
+
+
+** Gui Packages
+
+   | Package            | Description                              |
+   |--------------------+------------------------------------------|
+   | Diminish           | Hide selected modes from modeline        |
+   | Rainbow-Delimiters | Color parethesies                        |
+   | mlscroll           | Document location indicator for modeline |
+   
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   GUI Packages   -------\
+
+     (use-package diminish)
+
+     (eval-after-load "eldoc"
+       '(diminish 'eldoc-mode))
+
+     (diminish 'abbrev-mode)
+
+     (use-package rainbow-delimiters
+       :diminish
+       :hook (prog-mode . rainbow-delimiters-mode))
+
+     (use-package mlscroll
+       :config
+       ;;  breaks evil status indicator
+       ;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
+       (mlscroll-mode 1))
+
+     (use-package dired
+       :ensure nil
+       :commands (dired dired-jump)
+       :bind (("C-x C-j" . dired-jump))
+       :custom ((dired-listing-switches "-agho --group-directories-first")))
+
+     (autoload 'dired-omit-mode "dired-x")	
+
+     (use-package perspective
+       :custom
+       (persp-mode-prefix-key (kbd "C-x x")) 
+       :bind (("C-x k" . persp-kill-buffer*))
+       :init
+       (persp-mode))
+     (use-package dired-single
+       :commands (dired dired-jump))
+
+     (use-package dired-ranger
+       :defer t)
+
+     (use-package dired-collapse
+       :defer t)
+
+     (use-package emojify
+       :hook (erc-mode . emojify-mode)
+       :commands emojify-mode)
+
+   #+end_src 
+
+ 
+** Fonts
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					;-------   Fonts    -------\
+
+;(set-face-attribute 'default nil :font "FONT NAME" :height ##)
+
    #+end_src
 
 
@@ -881,6 +920,7 @@
       (add-to-list 'org-structure-template-alist '("elo" . "src emacs-lisp :tangle ./mf-org.el"))
       (add-to-list 'org-structure-template-alist '("elt" . "src emacs-lisp :tangle ./mf-templates.el"))
       (add-to-list 'org-structure-template-alist '("els" . "src emacs-lisp :tangle ./mf-sh.el"))
+      (add-to-list 'org-structure-template-alist '("cc" . "src C :exports results"))
       (add-to-list 'org-structure-template-alist '("py" . "src python"))
       (tempo-define-template "org-recipe"
 			     '( "** "p n n
@@ -963,9 +1003,7 @@
 	(and (shell-command "xrdb ~/.Xresources")
 	     (message "xrdb updated"))))
 
-
     (add-hook 'conf-mode-hook (lambda () (add-hook 'after-save-hook #'mf/xrdb-xresources)))
-
 
     ;; (defun mf/dropbox ()
     ;;   (while (string-equal (file-name-directory)
@@ -976,4 +1014,3 @@
 
 	 (setq gc-cons-threshold (* 2 1000 1000))
   #+end_src
- 
