@@ -1,5 +1,33 @@
 #+title: Emax Config
 
+* Plans
+
+** Bugs
+
+*** "q" Kills Helpful Mode
+   
+    - evil keybinding currently broken
+     
+    #+begin_src emacs-lisp
+
+      (evil-define-minor-mode-key 'normal 'helpful-mode-map
+	"q" 'kill-buffer-and-window)
+      (add-hook 'window-configuration-change-hook #'evil-normalize-keymaps)
+
+    #+end_src
+
+
+*** Weird Auto Indent When Paste Behavior
+
+*** Fix Roam Template Behavior
+
+** Add
+
+*** Dropbox Hook
+
+    - Hook to run dropbox while and for a minute after in buffers from dropbox dir
+
+
 * init.el
 
 ** Startup
@@ -68,18 +96,25 @@
 
 ** General
 
-   - Enable buffer autorevert (autoupdate)
+   - Enable buffer auto-revert (auto-update)
      - Disable Auto reverting in Buffer-menu-mode
-   - Configure auth-souce
+   - Open Buffer List in same window.
+   - Configure auth-source
      
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   General   -------\
-     
+
      (use-package autorevert)
 
      (setq global-auto-revert-ignore-modes (list 'Buffer-menu-mode))
      (setq global-auto-revert-non-file-buffers t)
      (global-auto-revert-mode t)
+
+      (setq display-buffer-alist
+       (cons
+        '("\\*Buffer List\\*"
+          (display-buffer-same-window))
+        display-buffer-alist))
 
      (setq auth-sources '"~/Dropbox/Documents/Settings/Keys/.authinfo.gpg")
 
@@ -491,8 +526,6 @@
        "X" 'dired-ranger-move
        "p" 'dired-ranger-paste)
 
-     (evil-define-key 'normal 'helpful-mode-map
-       (kbd "q") #'kill-buffer-and-window)
 
      (recentf-mode 1)
      (global-set-key (kbd "C-x M-f") 'recentf-open-files)
@@ -859,8 +892,6 @@
 
      (use-package mlscroll
        :config
-       ;;  breaks evil status indicator
-       ;;  (setq mlscroll-shortfun-min-width 11) ;truncate which-func, for default mode-line-format's
        (mlscroll-mode 1))
 
      (use-package dired
@@ -877,6 +908,7 @@
        :bind (("C-x k" . persp-kill-buffer*))
        :init
        (persp-mode))
+
      (use-package dired-single
        :commands (dired dired-jump))
 
