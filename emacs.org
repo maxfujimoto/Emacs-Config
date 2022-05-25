@@ -807,6 +807,9 @@
       (tooltip-mode -1)
       (column-number-mode)
       (global-display-line-numbers-mode t)
+      (setq display-line-numbers 'relative)
+      (setq display-line-numbers-width 3)
+
 
       (setq ring-bell-function
 	    (lambda ()
@@ -848,21 +851,7 @@
 					     ;-------   Theme   -------\
      (setq custom-theme-directory (concat user-emacs-directory "themes"))
 
-     ;; (use-package timu-spacegrey-theme
-     ;;   :config
-     ;;   (load-theme 'timu-spacegrey t))
-
      (load-theme 'mf-spacegrey t)
-
-     ;; (use-package sublime-themes
-     ;; ;;	:config
-     ;; ;;	(load-theme 'brin t))
-
-     ;; (use-package moe-theme
-     ;;   :defer 0)
-
-     ;; (use-package doom-themes
-     ;;   :defer 0)
 
    #+end_src
 
