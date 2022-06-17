@@ -29,3 +29,4 @@ mf-org.el
 mf-templates.el
 mf-sh.el
 mf-custom.el
+*.sql
