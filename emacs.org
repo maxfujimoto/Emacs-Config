@@ -3,26 +3,14 @@
 * Plans
 
 ** Bugs
-
-*** "q" Kills Helpful Mode
    
-    - evil keybinding currently broken
-     
-    #+begin_src emacs-lisp
-
-      (evil-define-minor-mode-key 'normal 'helpful-mode-map
-	"q" 'kill-buffer-and-window)
-      (add-hook 'window-configuration-change-hook #'evil-normalize-keymaps)
-
-    #+end_src
-
-
-*** Weird Auto Indent When Paste Behavior
-
 *** Fix Roam Template Behavior
 
 
 ** Add
+
+*** Different auto indent behavior
+*** Variable theme path for hydra
 
 *** Dropbox Hook
 
@@ -194,10 +182,10 @@
 	 (corfu-auto t)
 	 (corfu-auto-delay .5)
 	 (corfu-auto-prefix 1)
-	 :config
-	 (corfu-global-mode)
+	 ;:config
+	 ;(corfu-global-mode)
 	 :hook
-	 (after-init . corfu-global-mode))
+	 (after-init . global-corfu-mode))
 
        (use-package emacs
 	 :init
@@ -406,16 +394,16 @@
    - Paths of other elsip init files
 
    #+begin_src emacs-lisp :tangle ./init.el
-						  ;-------   Load Paths   -------\
+					     ;-------   Load Paths   -------\
 
-	  (load (concat user-emacs-directory "mf-keys.el"))
-	  (load (concat user-emacs-directory "mf-org.el"))
-	  (load (concat user-emacs-directory "mf-gui.el"))
-	  (load (concat user-emacs-directory "mf-templates.el"))
-	  (load (concat user-emacs-directory "mf-sh.el"))
+     (load (concat user-emacs-directory "mf-keys.el"))
+     (load (concat user-emacs-directory "mf-org.el"))
+     (load (concat user-emacs-directory "mf-gui.el"))
+     (load (concat user-emacs-directory "mf-templates.el"))
+     (load (concat user-emacs-directory "mf-sh.el"))
 
-	  (setq custom-file (locate-user-emacs-file "mf-custom.el"))
-	  (load custom-file 'noerror 'nomessage)
+     (setq custom-file (locate-user-emacs-file "mf-custom.el"))
+     (load custom-file 'noerror 'nomessage)
 
    #+end_src
    
@@ -569,6 +557,7 @@
        ("t" (find-file (expand-file-name "~/Org/todo.org"))"todo.org" :exit t)
        ("n" (find-file (expand-file-name "~/Org/notes.org"))"notes.org" :exit t)
        ("r" (find-file (expand-file-name "~/Documents/Recipe_Book/Recipe_Book_2/recipes.org"))"recipes.org" :exit t)
+       ("T" (find-file (concat custom-theme-directory "/mf-spacegrey-theme.el"))"theme" :exit t)
        ("<escape>" nil "exit" :exit t))
 
      (defhydra hydra-find-dir (:timeout 4)
