@@ -42,9 +42,9 @@
 Custom theme inspired by the spacegray theme in Sublime Text.")
 
 (let ((class '((class color) (min-colors 89)))
-      (bg "#2b303b")
+      (bg "#03050b")
       (bg-org "#282d37")
-      (bg-other "#232830")
+      (bg-other "#1E1F26")
       (spacegrey0 "#1b2229")
       (spacegrey1 "#1c1f24")
       (spacegrey2 "#202328")
