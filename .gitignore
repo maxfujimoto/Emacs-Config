@@ -1,6 +1,8 @@
 # File Types
 *~
+*archive
 *.eld
+*.sql
 *bak
 
 # Folders
@@ -20,13 +22,8 @@ recentf
 bookmarks
 org-roam.db
 .org-id-locations
+tramp
 
 # babled files
 init.el
-mf-gui.el
-mf-keys.el
-mf-org.el
-mf-templates.el
-mf-sh.el
-mf-custom.el
-*.sql
+mf-*.el
