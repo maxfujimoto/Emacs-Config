@@ -67,6 +67,7 @@
 
      (require 'use-package-ensure)
      (setq use-package-always-ensure t)
+     (setq use-package-always-demand (daemonp))
 
      (setq use-package-verbose t)
 
@@ -80,6 +81,8 @@
    - Open Buffer List in same window.
    - Configure auth-source
    - Quit bind prompts for confirmation in graphical mode
+   - Restore session on restart
+   - Relative line numbers
 
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   General   -------\
@@ -95,10 +98,14 @@
 	      (display-buffer-same-window))
 	    display-buffer-alist))
 
-     (setq auth-sources '"~/Dropbox/Documents/Settings/Keys/.authinfo.gpg")
+     (setq auth-sources '"~/Documents/Keys/.authinfo.gpg")
 
      (when (display-graphic-p)
        (setq confirm-kill-emacs 'y-or-n-p))
+
+     (desktop-save-mode 0)
+     ;; enable breaks bufferp switching
+
 
    #+end_src
 
@@ -123,7 +130,7 @@
    #+end_src
 
 
-* mf-packages.el
+* packages.el
 
 ** Help
 
@@ -146,7 +153,7 @@
 
 
      (defun mf/info-mode-visual-fill ()
-       (setq visual-fill-column-width 160
+       (setq visual-fill-column-width 77
 	     visual-fill-column-center-text t)
        (visual-fill-column-mode 1))
 
@@ -274,6 +281,10 @@
 		(prog-mode . flyspell-prog-mode)))
 
        (global-set-key (kbd "C-c f") 'flyspell-mode )
+
+       (use-package whitespace)
+
+       (global-set-key (kbd "C-c w") 'whitespace-mode )
 
      #+end_src
 
@@ -467,17 +478,17 @@
    #+end_src
 
 
-* mf-keys.el
+* keys.el
 
 ** Key Packages
 
-   | Package          | Description                                                       |
-   |------------------+-------------------------------------------------------------------|
-   | Evil             | Extensible VIm Layers                                             |
-   | Evil Collection  | Additional mode support for Evil                                  |
-   | General          | Leader keys                                                       |
-   | Which-Key        | Displays available next keystrokes for keybinds after 1.5 seconds |
-   | Hydra            | Prefix bindings                                                   |
+   | Package         | Description                                                       |
+   |-----------------+-------------------------------------------------------------------|
+   | Evil            | Vim Layers                                                        |
+   | Evil Collection | Additional mode support for Evil                                  |
+   | General         | Leader keys                                                       |
+   | Which-Key       | Displays available next keystrokes for keybinds after 1.5 seconds |
+   | Hydra           | Prefix bindings                                                   |
 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Key Packages   -------\
@@ -514,7 +525,7 @@
      (use-package general
        :after evil
        :config
-       (general-create-definer mf/leader-keys
+       (general-create-definer mf/general-keys
 	 :keymaps '(normal insert visual emacs)
 	 :prefix "SPC"
 	 :global-prefix "C-SPC"))
@@ -559,7 +570,7 @@
    #+end_src
 
 
-** Which and Leader Keys
+** Which and General Keys
 
    | Function         | Description                      |
    |------------------+----------------------------------|
@@ -569,15 +580,24 @@
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Which and Leader Keys   -------\
 
-     (mf/leader-keys
+     (mf/general-keys
        "t" '(:ignore t :which-key "toggles")
-       "f" '(:ignore t :which-key "find")
        "ts" '(hydra-text-scale/body :which-key "scale text")
+       "tl" '(display-line-numbers-mode :which-key "line-numbers")
+       "tp" '(visual-fill-column-mode :which-key "padding")
+
+       "f" '(:ignore t :which-key "find")
        "ff" '(hydra-find-file/body :which-key "find file")
-       "fd" '(hydra-find-dir/body :which-key "find directory")
+       "fc" '(hydra-find-config/body :which-key "find conf.")
+       "fd" '(hydra-find-dir/body :which-key "find dir.")
+
+       "x" '(:ignore t :which-key "eval")
+       "xe" '(hydra-eval-emacs/body :which-key "emacs")
        "b" '(hydra-switch-buffer/body :which-key "switch buffer")
        "w" '(hydra-switch-window/body :which-key "switch window")
-       "v" '(vterm :which-key "vterm"))
+       "v" '(vterm :which-key "vterm")
+       "m" '(mf/switch-to-messages :which-key "*Messages*")
+       "s" '(mf/switch-to-scratch :which-key "*scratch*"))
 
      (defhydra hydra-text-scale (:timeout 4)
        "scale text"
@@ -591,7 +611,11 @@
        ("t" (find-file (expand-file-name "~/Org/todo.org"))"todo.org" :exit t)
        ("n" (find-file (expand-file-name "~/Org/notes.org"))"notes.org" :exit t)
        ("r" (find-file (expand-file-name "~/Documents/Recipe_Book/Recipe_Book_2/recipes.org"))"recipes.org" :exit t)
-       ("T" (find-file (concat custom-theme-directory "/mf-spacegrey-theme.el"))"theme" :exit t)
+       ("<escape>" nil "exit" :exit t))
+
+     (defhydra hydra-find-config (:timeout 4)
+       ("t" (find-file (concat custom-theme-directory "/mf-spacegrey-theme.el"))"theme" :exit t)
+       ("d" (find-file (expand-file-name "~/.config/mf-dwm/config.def.h"))"dwm" :exit t)
        ("<escape>" nil "exit" :exit t))
 
      (defhydra hydra-find-dir (:timeout 4)
@@ -643,10 +667,22 @@
 	      (kill-this-buffer))"c & k")
        ("<escape>" nil "exit" :exit t))
 
+     (defhydra hydra-eval-emacs (:timeout 4)
+       ("i" (load-file user-init-file)"init.el" :exit t)
+       ("<escape>" nil "exit" :exit t))
+
+     (defun mf/switch-to-scratch ()
+       (interactive)
+       (switch-to-buffer "*scratch*"))
+
+     (defun mf/switch-to-messages ()
+       (interactive)
+       (switch-to-buffer "*Messages*"))
+ 
     #+end_src
 
 
-* mf-org.el
+* org.el
 
 ** Org Functions
 
@@ -830,7 +866,7 @@
    #+end_src
 
 
-* mf-gui.el
+* gui.el
 
 ** GUI
 
@@ -839,6 +875,9 @@
    - Flash Mode-Line instead of ring bell
 
    - Set Vim layer indicator faces
+
+   - [ ] * Full-screen in daemon mode*
+
 
     #+begin_src emacs-lisp :tangle ./mf-gui.el
 					      ;-------   General   -------\
@@ -851,32 +890,10 @@
       (tooltip-mode -1)
       (column-number-mode)
       (global-display-line-numbers-mode t)
-      (setq display-line-numbers 'relative)
+      (setq display-line-numbers-type 'relative)
       (setq display-line-numbers-width 3)
-
-      (setq ring-bell-function
-	    (lambda ()
-	      (let ((orig-fg (face-foreground 'mode-line)))
-		(set-face-foreground 'mode-line "#000")
-		;; (set-face-foreground 'mode-line "#fd5300")
-		(run-with-idle-timer 0.1 nil
-				     (lambda (fg) (set-face-foreground 'mode-line fg))
-				     orig-fg))))
-
-      (setq evil-normal-state-tag
-	    (propertize " <N> " 'face '((:background "DarkGoldenrod2" :foreground "black")))
-	    evil-emacs-state-tag
-	    (propertize " <E> " 'face '((:background "SkyBlue2"       :foreground "black")))
-	    evil-insert-state-tag
-	    (propertize " <I> " 'face '((:background "chartreuse3"    :foreground "black")))
-	    evil-replace-state-tag
-	    (propertize " <R> " 'face '((:background "chocolate"      :foreground "black")))
-	    evil-motion-state-tag
-	    (propertize " <M> " 'face '((:background "plum3"          :foreground "black")))
-	    evil-visual-state-tag
-	    (propertize " <V> " 'face '((:background "gray"           :foreground "black")))
-	    evil-operator-state-tag
-	    (propertize " <O> " 'face '((:background "sandy brown"    :foreground "black"))))
+      (setq visual-fill-column-width 77)
+      (setq visual-fill-column-center-text t)
 
       (dolist (mode '(org-mode-hook
 		      Info-mode-hook
@@ -894,10 +911,50 @@
    #+begin_src emacs-lisp :tangle ./mf-gui.el
 					     ;-------   Theme   -------\
 
-     (when (display-graphic-p)
-       (setq custom-theme-directory (concat user-emacs-directory "themes"))
+     (setq custom-theme-directory (concat user-emacs-directory "themes"))
 
+(when (or (display-graphic-p)(daemonp))
        (load-theme 'mf-spacegrey t))
+
+   #+end_src
+
+
+** Modeline
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Modeline   -------\\
+
+     (if (display-graphic-p)
+	 (use-package mlscroll
+	   :config (mlscroll-mode 1)))
+
+     (if (daemonp)
+	 (use-package mlscroll
+	   :hook (server-after-make-frame . mlscroll-mode)))
+
+     (setq evil-normal-state-tag
+	   (propertize " <N> " 'face '((:background "DarkGoldenrod2" :foreground "black")))
+	   evil-emacs-state-tag
+	   (propertize " <E> " 'face '((:background "SkyBlue2"       :foreground "black")))
+	   evil-insert-state-tag
+	   (propertize " <I> " 'face '((:background "chartreuse3"    :foreground "black")))
+	   evil-replace-state-tag
+	   (propertize " <R> " 'face '((:background "chocolate"      :foreground "black")))
+	   evil-motion-state-tag
+	   (propertize " <M> " 'face '((:background "plum3"          :foreground "black")))
+	   evil-visual-state-tag
+	   (propertize " <V> " 'face '((:background "gray"           :foreground "black")))
+	   evil-operator-state-tag
+	   (propertize " <O> " 'face '((:background "sandy brown"    :foreground "black"))))
+
+     (setq ring-bell-function
+	   (lambda ()
+	     (let ((orig-fg (face-foreground 'mode-line)))
+	       (set-face-foreground 'mode-line "#000")
+	       ;; (set-face-foreground 'mode-line "#fd5300")
+	       (run-with-idle-timer 0.1 nil
+				    (lambda (fg) (set-face-foreground 'mode-line fg))
+				    orig-fg))))
 
    #+end_src
 
@@ -914,19 +971,18 @@
 					     ;-------   GUI Packages   -------\
 
      (use-package diminish)
-
      (eval-after-load "eldoc"
        '(diminish 'eldoc-mode))
 
      (diminish 'abbrev-mode)
 
+     (use-package rainbow-mode
+       :defer t
+       :diminish)
+
      (use-package rainbow-delimiters
        :diminish
        :hook (prog-mode . rainbow-delimiters-mode))
-
-     (use-package mlscroll
-       :config
-       (mlscroll-mode 1))
 
      (use-package dired
        :ensure nil
@@ -937,11 +993,12 @@
      (autoload 'dired-omit-mode "dired-x")
 
      (use-package perspective
+       :defer t
        :custom
        (persp-mode-prefix-key (kbd "C-x x"))
-       :bind (("C-x k" . persp-kill-buffer*))
-       :init
-       (persp-mode))
+       :bind (("C-x k" . persp-kill-buffer*)))
+       ;; :init
+       ;; (persp-mode))
 
      (use-package dired-single
        :commands (dired dired-jump))
@@ -969,7 +1026,7 @@
    #+end_src
 
 
-* mf-templates.el
+* templates.el
 
   #+begin_src emacs-lisp :tangle ./mf-templates.el
 						;-------   Tempo Templates   -------\
@@ -1043,7 +1100,7 @@
  #+end_src
 
 
-* mf-sh.el
+* sh.el
 
   | Function                  | Description                                  |
   |---------------------------+----------------------------------------------|
@@ -1177,7 +1234,9 @@
 **** Tangle AIS
 *** Arduino IDE
 *** Browser Bookmarks
-*** auth store
+*** light mode toggle
+*** auth source?
+    alt that works with other programs
 *** Pomodoro
 *** TreeMacs
 *** Make Dired Like ranger?
@@ -1208,3 +1267,4 @@
 
 *** Org Roam Capture swallowing new lines
     fixed in native comp
+    
