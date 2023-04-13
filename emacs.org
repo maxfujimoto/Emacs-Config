@@ -550,6 +550,19 @@
 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Key Binds   -------\
+     (defun dw/dont-arrow-me-bro ()
+	 (interactive)
+	 (message "Arrow keys are bad, you know?"))
+
+     ;; Disable arrow keys in normal and visual modes
+     (define-key evil-normal-state-map (kbd "<left>") 'dw/dont-arrow-me-bro)
+     (define-key evil-normal-state-map (kbd "<right>") 'dw/dont-arrow-me-bro)
+     (define-key evil-normal-state-map (kbd "<down>") 'dw/dont-arrow-me-bro)
+     (define-key evil-normal-state-map (kbd "<up>") 'dw/dont-arrow-me-bro)
+     (evil-global-set-key 'motion (kbd "<left>") 'dw/dont-arrow-me-bro)
+     (evil-global-set-key 'motion (kbd "<right>") 'dw/dont-arrow-me-bro)
+     (evil-global-set-key 'motion (kbd "<down>") 'dw/dont-arrow-me-bro)
+     (evil-global-set-key 'motion (kbd "<up>") 'dw/dont-arrow-me-bro)
 
      (evil-collection-define-key 'normal 'dired-mode-map
        "h" 'dired-single-up-directory
