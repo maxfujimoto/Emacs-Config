@@ -262,6 +262,22 @@
     #+end_src
 
 
+*** AI
+
+    #+begin_src emacs-lisp :tangle ./mf-packages.el
+					      ;-------   AI   -------\
+
+      (use-package gptel
+	:config
+	(setq gptel-default-mode 'org-mode)
+	(setq visual-column-width 77)
+	(setq gptel-api-key (let ((secret (car (auth-source-search :host "openai"
+								     :max 1))))
+			      (when (functionp (plist-get secret :secret))
+				(funcall (plist-get secret :secret))))))
+    #+end_src
+
+
 *** Spelling
 
 - Set $DICPATH to "$HOME/Documents/Dictionaries" for hunspell.
