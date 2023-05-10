@@ -137,10 +137,10 @@
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   Load Paths   -------\
 
+     (load (concat user-emacs-directory "mf-gui.el"))
      (load (concat user-emacs-directory "mf-packages.el"))
      (load (concat user-emacs-directory "mf-keys.el"))
      (load (concat user-emacs-directory "mf-org.el"))
-     (load (concat user-emacs-directory "mf-gui.el"))
      (load (concat user-emacs-directory "mf-templates.el"))
      (load (concat user-emacs-directory "mf-sh.el"))
 
