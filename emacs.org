@@ -172,13 +172,13 @@
        ([remap describe-key] . helpful-key))
 
 
-     (defun mf/info-mode-visual-fill ()
+     (defun mf/column-padding()
        (setq visual-fill-column-width 77
 	     visual-fill-column-center-text t)
        (visual-fill-column-mode 1))
 
      (use-package info
-       :hook (Info-mode . mf/info-mode-visual-fill))
+       :hook (Info-mode . mf/column-padding))
 
    #+end_src
 
@@ -790,7 +790,11 @@
        :hook (org-mode . org-bullets-mode))
 
      (use-package visual-fill-column
-       :hook (org-mode . mf/org-mode-visual-fill))
+       :hook (org-mode . mf/org-mode-visual-fill)
+       :init
+       (setq visual-fill-column-width 100)
+       (setq visual-fill-column-center-text t)
+       :config (global-visual-fill-column-mode t))
 
      (use-package org-roam
        :custom
@@ -938,12 +942,10 @@
       (global-set-key (kbd "<f5>") 'menu-bar-mode)
       (set-fringe-mode 10)                    ; padding
       (tooltip-mode -1)
-      (column-number-mode)
+      (column-number-mode t)
       (global-display-line-numbers-mode t)
       (setq display-line-numbers-type 'relative)
       (setq display-line-numbers-width 3)
-      (setq visual-fill-column-width 77)
-      (setq visual-fill-column-center-text t)
 
       (dolist (mode '(org-mode-hook
 		      Info-mode-hook
