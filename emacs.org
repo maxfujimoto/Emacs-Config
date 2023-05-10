@@ -118,7 +118,7 @@
 	      (display-buffer-same-window))
 	    display-buffer-alist))
 
-     (setq auth-sources '"~/Documents/Keys/.authinfo.gpg")
+     (setq auth-sources '("~/Documents/Keys/.authinfo.gpg"))
 
      (when (display-graphic-p)
        (setq confirm-kill-emacs 'y-or-n-p))
@@ -295,6 +295,7 @@
 								     :max 1))))
 			      (when (functionp (plist-get secret :secret))
 				(funcall (plist-get secret :secret))))))
+
     #+end_src
 
 
@@ -727,7 +728,7 @@
      (defun mf/switch-to-messages ()
        (interactive)
        (switch-to-buffer "*Messages*"))
- 
+
     #+end_src
 
 
@@ -957,12 +958,13 @@
 
 
 ** Theme
+
    #+begin_src emacs-lisp :tangle ./mf-gui.el
 					     ;-------   Theme   -------\
 
      (setq custom-theme-directory (concat user-emacs-directory "themes"))
 
-(when (or (display-graphic-p)(daemonp))
+     (when (or (display-graphic-p)(daemonp))
        (load-theme 'mf-spacegrey t))
 
    #+end_src
@@ -1068,9 +1070,9 @@
 ** Fonts
 
    #+begin_src emacs-lisp :tangle ./mf-gui.el
-					;-------   Fonts    -------\
+					     ;-------   Fonts    -------\
 
-;(set-face-attribute 'default nil :font "FONT NAME" :height ##)
+     ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
 
    #+end_src
 
