@@ -565,14 +565,14 @@
        (general-create-definer mf/general-keys
 	 :keymaps '(normal insert visual emacs)
 	 :prefix "SPC"
-	 :global-prefix "C-SPC"))
+	 :global-prefix "M-SPC"))
 
      (use-package which-key
 	:defer 0
 	:diminish which-key-mode
 	:config
 	(which-key-mode)
-	(setq which-key-idle-delay 1.5))
+	(setq which-key-idle-delay .55))
 
      (use-package hydra
        :defer t)
@@ -622,10 +622,10 @@
 
 ** Which and General Keys
 
-   | Function         | Description                      |
-   |------------------+----------------------------------|
-   | mf/leader-keys   | Define leader keys t, s, and fde |
-   | hydra-text-scale | Scale text with j and k          |
+   | Function         | Description                     |
+   |------------------+---------------------------------|
+   | mf/general-keys  | Define leading keys in keybinds |
+   | hydra-text-scale | Scale text with j and k         |
 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Which and Leader Keys   -------\
@@ -647,7 +647,8 @@
        "w" '(hydra-switch-window/body :which-key "switch window")
        "v" '(vterm :which-key "vterm")
        "m" '(mf/switch-to-messages :which-key "*Messages*")
-       "s" '(mf/switch-to-scratch :which-key "*scratch*"))
+       "s" '(mf/switch-to-scratch :which-key "*scratch*")
+       "SPC" '(which-key-show-full-major-mode :which-key "which-key"))
 
      (defhydra hydra-text-scale (:timeout 4)
        "scale text"
@@ -665,7 +666,10 @@
 
      (defhydra hydra-find-config (:timeout 4)
        ("t" (find-file (concat custom-theme-directory "/mf-spacegrey-theme.el"))"theme" :exit t)
-       ("d" (find-file (expand-file-name "~/.config/mf-dwm/config.def.h"))"dwm" :exit t)
+       ("d" (find-file (expand-file-name "~/.config/mf-dwm/config.h"))"dwm" :exit t)
+       ("D" (find-file (expand-file-name "~/.config/mf-dwm/config.def.h"))"dwm" :exit t)
+       ("x" (find-file (expand-file-name "~/.xinitrc"))".xinitrc" :exit t)
+       ("r" (find-file (expand-file-name "~/.Xresources"))".Xresrouces" :exit t)
        ("<escape>" nil "exit" :exit t))
 
      (defhydra hydra-find-dir (:timeout 4)
