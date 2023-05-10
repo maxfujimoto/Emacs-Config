@@ -8,6 +8,7 @@
    - Change garbage collection threshold
      - The default is 800 000 bytes
    - Display Emacs load time and gcs
+   - Refresh dwm blocks if in daemon mode
    - Custom scratch message
    - Inhibit startup Message
 
@@ -24,9 +25,28 @@
 				   (time-subtract after-init-time before-init-time)))
 			  gcs-done)))
 
+     (if (daemonp)
+	 (add-hook 'emacs-startup-hook
+	       (lambda ()
+		 (shell-command "pkill -RTMIN+7 dwmblocks"))))
+
      (setq initial-scratch-message "")
 
      (setq inhibit-startup-message t)
+
+   #+end_src
+
+
+** Kill-Hook
+
+   - Refresh dwmblocks when emacs is killed
+
+   #+begin_src emacs-lisp :tangle ./init.el
+						  ;-------   Kill Hooks   -------\
+     (if (daemonp)
+	 (add-hook 'kill-emacs-hook
+		   (lambda ()
+		     (shell-command "pkill -RTMIN+7 dwmblocks"))))
 
    #+end_src
 
