@@ -1,29 +1,6 @@
-# File Types
-*~
-*archive
-*.eld
-*.sql
-*bak
+# Everything
+*
 
-# Folders
-**/auto-save-list
-**/elpa
-**/url
-**/transient
-**/.cache
-**/emojis
-
-# Files
-history
-forge-database.sqlite
-.lsp-session*
-session.*
-recentf
-bookmarks
-org-roam.db
-.org-id-locations
-tramp
-
-# babled files
-init.el
-mf-*.el
+# Excluding
+!emacs.org
+!/themes/mf-*
