@@ -157,7 +157,6 @@
    | Package | Description           |
    |---------+-----------------------|
    | Helpful | Better documentation  |
-   | Info    | Padding for info mode |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					     ;-------   Help   -------\
@@ -170,15 +169,6 @@
        ([remap describe-variable] . helpful-variable)
        ([remap describe-command] . helpful-command)
        ([remap describe-key] . helpful-key))
-
-
-     (defun mf/column-padding()
-       (setq visual-fill-column-width 77
-	     visual-fill-column-center-text t)
-       (visual-fill-column-mode 1))
-
-     (use-package info
-       :hook (Info-mode . mf/column-padding))
 
    #+end_src
 
@@ -743,8 +733,7 @@
 
    | Function                | Description                                                 |
    |-------------------------+-------------------------------------------------------------|
-   | mf/org-mode-set         | Diminish indent mode, visual line mode and evil auto indent |
-   | mf/org-mode-visual-fill | Org mode column padding settings                            |
+   | mf/org-mode-setup       | Diminish indent mode, visual line mode and evil auto indent |
 
    #+begin_src emacs-lisp :tangle ./mf-org.el
 					     ;-------   Org Function   -------\
@@ -752,106 +741,92 @@
      (defun mf/org-mode-setup ()
        (diminish 'org-indent-mode)
        ;;  (variable-pitch-mode 1)
-       (visual-line-mode 1)
-       (diminish 'visual-line-mode)
        (setq evil-auto-indent nil
 	     org-adapt-indentation t))
-
-     (defun mf/org-mode-visual-fill ()
-       (setq visual-fill-column-width 100
-	     visual-fill-column-center-text t)
-       (visual-fill-column-mode 1))
 
    #+end_src
 
 
 ** Org Packages
 
-   #+begin_src emacs-lisp :tangle ./mf-org.el
-					     ;-------   Packages   -------\
+    #+begin_src emacs-lisp :tangle ./mf-org.el
+					      ;-------   Packages   -------\
 
-     (use-package org
-       :pin org
-       :custom (org-directory "~/Org")
-       :commands (org-capture org-agenda)
-       :hook (org-mode . mf/org-mode-setup)
-       :config (setq org-startup-folded t
-		     ;;org-ellipsis " ▾"
-		     org-log-agenda-sater-with-log-mode t
-		     org-log-done 'time
-		     org-log-into-drawer t))
+      (use-package org
+	:pin org
+	:custom (org-directory "~/Org")
+	:commands (org-capture org-agenda)
+	:hook (org-mode . mf/org-mode-setup)
+	:config (setq org-startup-folded t
+		      ;;org-ellipsis " ▾"
+		      org-log-agenda-sater-with-log-mode t
+		      org-log-done 'time
+		      org-log-into-drawer t))
 
-     (setq org-todo-keywords
-	   '((type "TODO(t)" "HOLD(h)" "NEXT(n)" "|" "DONE(d!)")))
+      (setq org-todo-keywords
+	    '((type "TODO(t)" "HOLD(h)" "NEXT(n)" "|" "DONE(d!)")))
 
-     (setq org-refile-targets
-	   '(("Archive.org" :maxlevel . 1)
-	     ("Tasks.org" :maxlevel . 1)))
+      (setq org-refile-targets
+	    '(("Archive.org" :maxlevel . 1)
+	      ("Tasks.org" :maxlevel . 1)))
 
-     ;; Save Org buffers after refiling!
-     (advice-add 'org-refile :after 'org-save-all-org-buffers)
+      ;; Save Org buffers after refiling!
+      (advice-add 'org-refile :after 'org-save-all-org-buffers)
 
-     (use-package org-bullets
-       :hook (org-mode . org-bullets-mode))
+      (use-package org-bullets
+	:hook (org-mode . org-bullets-mode))
 
-     (use-package visual-fill-column
-       :hook (org-mode . mf/org-mode-visual-fill)
-       :init
-       (setq visual-fill-column-width 100)
-       (setq visual-fill-column-center-text t)
-       :config (global-visual-fill-column-mode t))
+      (use-package org-roam
+	:custom
+	(org-roam-directory "~/Org/Roam")
+	(org-roam-completion-everywhere t)
+	(org-roam-capture-templates
+	 '(("p" "plain" plain
+	    "%?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)
+	   ("d" "Definition" plain
+	    "\n* Definition\n\n  - %?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :empty-lines 1
+	    :unnarrowed t)
+	   ("D" "Symbols Definition" plain
+	    "#+options: ^:{}\n#+startup: entitiespretty\n* nDefinition\n\n  - %?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)
+	   ("l" "Logic" plain
+	    "#+options: ^:{}\n#+startup: entitiespretty\n\n- A %?\n\n- B "
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)))
 
-     (use-package org-roam
-       :custom
-       (org-roam-directory "~/Org/Roam")
-       (org-roam-completion-everywhere t)
-       (org-roam-capture-templates
-	'(("p" "plain" plain
-	   "%?"
-	   :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	   :unnarrowed t)
-	  ("d" "Definition" plain
-	   "\n* Definition\n\n  - %?"
-	   :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	   :empty-lines 1
-	   :unnarrowed t)
-	  ("D" "Symbols Definition" plain
-	   "#+options: ^:{}\n#+startup: entitiespretty\n* nDefinition\n\n  - %?"
-	   :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	   :unnarrowed t)
-	  ("l" "Logic" plain
-	   "#+options: ^:{}\n#+startup: entitiespretty\n\n- A %?\n\n- B "
-	   :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	   :unnarrowed t)))
+	:bind (("C-c n l" . org-roam-buffer-toggle)
+	       ("C-c n f" . org-roam-node-find)
+	       ("C-c n i" . org-roam-node-insert)
+	       :map org-mode-map
+	       ("M-TAB"    . completion-at-point))
+	      :config
+	      (org-roam-setup))
 
-       :bind (("C-c n l" . org-roam-buffer-toggle)
-	      ("C-c n f" . org-roam-node-find)
-	      ("C-c n i" . org-roam-node-insert)
-	      :map org-mode-map
-	      ("M-TAB"    . completion-at-point))
-	     :config
-	     (org-roam-setup))
+      (use-package org-roam-ui
+	:after org-roam
+	;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+	;;         a hookable mode anymore, you're advised to pick something yourself
+	;;         if you don't care about startup time, use
+	;;  :hook (after-init . org-roam-ui-mode)
+	:init
+	(setq org-roam-ui-sync-theme t
+	      org-roam-ui-follow t
+	      org-roam-ui-open-on-start nil
+	      org-roam-ui-update-on-save t
+	      org-roam-ui-open-on-start t))
 
-     (use-package org-roam-ui
-       :after org-roam
-       ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-       ;;         a hookable mode anymore, you're advised to pick something yourself
-       ;;         if you don't care about startup time, use
-       ;;  :hook (after-init . org-roam-ui-mode)
-       :init
-       (setq org-roam-ui-sync-theme t
-	     org-roam-ui-follow t
-	     org-roam-ui-open-on-start nil
-	     org-roam-ui-update-on-save t
-	     org-roam-ui-open-on-start t))
+      (with-eval-after-load 'org
+	(org-babel-do-load-languages
+	 'org-babel-load-languages
+	 '((emacs-lisp . t)
+	   (C . t))))
 
-     (with-eval-after-load 'org
-       (org-babel-do-load-languages
-	'org-babel-load-languages
-	'((emacs-lisp . t)
-	  (C . t))))
-
-   #+end_src
+    #+end_src
 
 
 ** Org Agenda
@@ -927,6 +902,63 @@
 
 * gui.el
 
+** Padding
+
+   | Package                    | Description |
+   |----------------------------+-------------|
+   | mf/visual-fill-column-wide |             |
+   | mf/visual-fill-column-wide |             |
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Padding   -------\
+
+     (defun mf/visual-fill-column-narrow ()
+       (setq visual-fill-column-width 77
+	     visual-fill-column-center-text t)
+	     (visual-fill-column-mode t))
+
+     (defun mf/visual-fill-column-wide ()
+       (setq visual-fill-column-width 100
+	     visual-fill-column-center-text t)
+	     (visual-fill-column-mode t))
+
+     (use-package visual-fill-column
+       :init
+       (mf/visual-fill-column-wide)
+       :hook  ((text-mode . visual-fill-column-mode)
+	       (Info-mode . mf/visual-fill-column-narrow))
+       :config
+       (global-visual-fill-column-mode t))
+
+     ;; (use-package info
+     ;;   :hook (Info-mode . mf/visual-fill-column-narrow))
+
+     ;; (use-package visual-fill-column
+     ;;   :init
+     ;;   (add-hook 'after-change-major-mode-hook
+     ;; 	    (lambda ()
+     ;; 	      (unless (eq major-mode 'minibuffer-mode)
+     ;; 		(mf/visual-fill-column-wide)))))
+
+     ;; (use-package visual-fill-column
+     ;;   :hook
+     ;;   ((org-mode . mf/visual-fill-column-wide)
+     ;;    (Info-mode . mf/visual-fill-column-narrow)
+     ;;    (gptel-mode . visual-fill-column-mode t)
+     ;;    (prog-mode . visual-fill-column-mode t))
+     ;;   :init
+     ;;   (setq-default visual-fill-column-width 100
+     ;; 		visual-fill-column-center-text t
+     ;; 		visual-fill-column-mode t))
+
+     ;; (add-hook 'minibuffer-mode-hook
+     ;; 	  (lambda ()
+     ;; 	    (setq-local visual-fill-column-center-text t
+     ;; 			visual-fill-column-width nil)))
+
+   #+end_src
+
+
 ** GUI
 
    - Remove all visual bloat
@@ -947,6 +979,8 @@
       (global-set-key (kbd "<f5>") 'menu-bar-mode)
       (set-fringe-mode 10)                    ; padding
       (tooltip-mode -1)
+      (global-visual-line-mode t)
+      (diminish 'visual-line-mode)
       (column-number-mode t)
       (global-display-line-numbers-mode t)
       (setq display-line-numbers-type 'relative)
@@ -960,6 +994,75 @@
 		      vterm-mode-hook
 		      pdf-view-mode-hook))
 	(add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+      ;;      (add-to-list 'visual-line-mode-ignored-major-modes 'minibuffer-mode)
+
+    #+end_src
+
+
+*** Gui Packages
+
+    | Package            | Description                              |
+    |--------------------+------------------------------------------|
+    | Diminish           | Hide selected modes from modeline        |
+    | Rainbow-Delimiters | Color parethesies                        |
+    | mlscroll           | Document location indicator for modeline |
+
+    #+begin_src emacs-lisp :tangle ./mf-gui.el
+					      ;-------   GUI Packages   -------\
+
+      (use-package diminish)
+      (eval-after-load "eldoc"
+	'(diminish 'eldoc-mode))
+
+      (diminish 'abbrev-mode)
+
+      (use-package rainbow-mode
+	:defer t
+	:diminish)
+
+      (use-package rainbow-delimiters
+	:diminish
+	:hook (prog-mode . rainbow-delimiters-mode))
+
+      (use-package dired
+	:ensure nil
+	:commands (dired dired-jump)
+	:bind (("C-x C-j" . dired-jump))
+	:custom ((dired-listing-switches "-agho --group-directories-first")))
+
+      (autoload 'dired-omit-mode "dired-x")
+
+      (use-package perspective
+	:defer t
+	:custom
+	(persp-mode-prefix-key (kbd "C-x x"))
+	:bind (("C-x k" . persp-kill-buffer*))
+	:init
+	(persp-mode))
+
+      (use-package dired-single
+	:commands (dired dired-jump))
+
+      (use-package dired-ranger
+	:defer t)
+
+      (use-package dired-collapse
+	:defer t)
+
+      (use-package emojify
+	:hook (erc-mode . emojify-mode)
+	:commands emojify-mode)
+
+    #+end_src
+
+
+*** Fonts
+
+    #+begin_src emacs-lisp :tangle ./mf-gui.el
+					      ;-------   Fonts    -------\
+
+      ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
 
     #+end_src
 
@@ -1013,73 +1116,6 @@
 	       (run-with-idle-timer 0.1 nil
 				    (lambda (fg) (set-face-foreground 'mode-line fg))
 				    orig-fg))))
-
-   #+end_src
-
-
-** Gui Packages
-
-   | Package            | Description                              |
-   |--------------------+------------------------------------------|
-   | Diminish           | Hide selected modes from modeline        |
-   | Rainbow-Delimiters | Color parethesies                        |
-   | mlscroll           | Document location indicator for modeline |
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   GUI Packages   -------\
-
-     (use-package diminish)
-     (eval-after-load "eldoc"
-       '(diminish 'eldoc-mode))
-
-     (diminish 'abbrev-mode)
-
-     (use-package rainbow-mode
-       :defer t
-       :diminish)
-
-     (use-package rainbow-delimiters
-       :diminish
-       :hook (prog-mode . rainbow-delimiters-mode))
-
-     (use-package dired
-       :ensure nil
-       :commands (dired dired-jump)
-       :bind (("C-x C-j" . dired-jump))
-       :custom ((dired-listing-switches "-agho --group-directories-first")))
-
-     (autoload 'dired-omit-mode "dired-x")
-
-     (use-package perspective
-       :defer t
-       :custom
-       (persp-mode-prefix-key (kbd "C-x x"))
-       :bind (("C-x k" . persp-kill-buffer*))
-       :init
-       (persp-mode))
-
-     (use-package dired-single
-       :commands (dired dired-jump))
-
-     (use-package dired-ranger
-       :defer t)
-
-     (use-package dired-collapse
-       :defer t)
-
-     (use-package emojify
-       :hook (erc-mode . emojify-mode)
-       :commands emojify-mode)
-
-   #+end_src
-
-
-** Fonts
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Fonts    -------\
-
-     ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
 
    #+end_src
 
