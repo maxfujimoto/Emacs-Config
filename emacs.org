@@ -278,14 +278,10 @@
 					      ;-------   AI   -------\
 
       (use-package gptel
-	:config
-	(setq gptel-default-mode 'org-mode)
-	(setq visual-column-width 77)
 	:init
-	(setq gptel-api-key (let ((secret (car (auth-source-search :host "openai"
-								     :max 1))))
-			      (when (functionp (plist-get secret :secret))
-				(funcall (plist-get secret :secret))))))
+	(setq gptel-default-mode 'org-mode)
+	:config
+	(setq  gptel-api-key (gptel-api-key-from-auth-source)))
 
     #+end_src
 
