@@ -37,20 +37,6 @@
    #+end_src
 
 
-** Kill-Hook
-
-   - Refresh dwmblocks when emacs is killed
-
-   #+begin_src emacs-lisp :tangle ./init.el
-						  ;-------   Kill Hooks   -------\
-     (if (daemonp)
-	 (add-hook 'kill-emacs-hook
-		   (lambda ()
-		     (shell-command "pkill -RTMIN+7 dwmblocks"))))
-
-   #+end_src
-
-
 ** Package Manager
 
    | Package            | Description                                     |
@@ -112,6 +98,29 @@
      (setq global-auto-revert-non-file-buffers t)
      (global-auto-revert-mode t)
 
+     (setq quotes
+	   '("Be yourself; everyone else is already taken. - Oscar Wilde"
+	     "I have not failed. I've just found 10,000 ways that won't work. - Thomas Edison"
+	     "If you want to achieve greatness, stop asking for permission. - Unknown"
+	     "The biggest risk is not taking any risk. In a world that's changing really quickly, the only strategy that is guaranteed to fail is not taking risks. - Mark Zuckerberg"))
+
+     (defun insert-random-quote ()
+       (interactive)
+       (let ((index (random (length quotes))))
+	 (with-current-buffer "*scratch*"
+	   (goto-char (point-max))
+	   (insert (concat ";; " (nth index quotes) "\n\n")))))
+
+     (add-hook 'server-after-make-frame-hook 'insert-random-quote)
+
+     (defadvice kill-line (before kill-line-autoreindent activate)
+       "Kill excess whitespace when joining lines.
+	  If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
+       (when (and (eolp) (not (bolp)))
+	 (save-excursion
+	   (forward-char 1)
+	   (just-one-space 1))))
+
      (setq display-buffer-alist
 	   (cons
 	    '("\\*Buffer List\\*"
@@ -120,12 +129,31 @@
 
      (setq auth-sources '("~/Documents/Keys/.authinfo.gpg"))
 
+     (defun mf/get-auth-source-secret (host)
+       "Retrieve secret from auth-source for given HOST."
+       (let ((secret (car (auth-source-search :host host :max 1))))
+	 (when (functionp (plist-get secret :secret))
+	   (funcall (plist-get secret :secret)))))
+
      (when (display-graphic-p)
        (setq confirm-kill-emacs 'y-or-n-p))
 
      (desktop-save-mode 0)
      ;; enable breaks bufferp switching
 
+   #+end_src
+
+
+** Kill-Hook
+
+   - Refresh dwmblocks when emacs is killed
+
+   #+begin_src emacs-lisp :tangle ./init.el
+						  ;-------   Kill Hooks   -------\
+     (if (daemonp)
+	 (add-hook 'kill-emacs-hook
+		   (lambda ()
+		     (shell-command "pkill -RTMIN+7 dwmblocks"))))
 
    #+end_src
 
@@ -145,7 +173,214 @@
      (load (concat user-emacs-directory "mf-sh.el"))
 
      (setq custom-file (locate-user-emacs-file "mf-custom.el"))
-     (load custom-file 'noerror 'nomessage)
+     ;; (load custom-file 'noerror 'nomessage)
+     (load custom-file)
+
+   #+end_src
+
+
+* gui.el
+
+** General
+
+   - Remove all visual bloat
+   - Set visual line mode t
+   - Set line numbers relative for select modes
+
+    #+begin_src emacs-lisp :tangle ./mf-gui.el
+					      ;-------   General   -------\
+
+      (scroll-bar-mode -1)
+      (menu-bar-mode -1)
+      (tool-bar-mode -1)
+      (global-set-key (kbd "<f5>") 'menu-bar-mode)
+      (set-fringe-mode 10)                    ; padding
+      (tooltip-mode -1)
+      (global-visual-line-mode t)
+      (diminish 'visual-line-mode)
+      (column-number-mode t)
+      (global-display-line-numbers-mode t)
+      (setq display-line-numbers-type 'relative)
+      (setq display-line-numbers-width 3)
+
+      (dolist (mode '(org-mode-hook
+		      Info-mode-hook
+		      term-mode-hook
+		      shell-mode-hook
+		      eshell-mode-hook
+		      vterm-mode-hook
+		      pdf-view-mode-hook))
+	(add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+    #+end_src
+
+
+** Padding
+
+   | Package                 | Description                            |
+   |-------------------------+----------------------------------------|
+   | mf/visual-fill-column-X | Set different fill column widths       |
+   | visual-fill-column      | Add vertical padding around the buffer |
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Padding   -------\
+
+     (defun mf/visual-fill-column-narrow ()
+       (setq visual-fill-column-width 77
+	     visual-fill-column-center-text t))
+
+     (defun mf/visual-fill-column-norm ()
+       (setq visual-fill-column-width 100
+	     visual-fill-column-center-text t))
+
+     (defun mf/visual-fill-column-wide ()
+       (setq visual-fill-column-width 150
+	     visual-fill-column-center-text t))
+
+     (defun mf/disable-visual-fill-column-mode ()
+       (visual-fill-column-mode -1))
+
+     (use-package visual-fill-column
+       :init
+       (mf/visual-fill-column-norm)
+       :hook  ((visual-line-mode . visual-fill-column-mode)
+	       (Info-mode . mf/visual-fill-column-narrow)
+	       (minibuffer-setup . mf/visual-fill-column-wide))
+       :config
+       (global-visual-fill-column-mode t))
+
+   #+end_src
+
+
+** Gui Packages
+
+   | Package            | Description                       |
+   |--------------------+-----------------------------------|
+   | Diminish           | Hide selected modes from modeline |
+   | Rainbow-Mode       | Render hex-colors as font hilight |
+   | Rainbow-Delimiters | Color parenthesizes               |
+   | Dired              | File manager                      |
+   | Perspective        | Group buffers in to perspectives  |
+   | Emojify            | Render Emojis                     |
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   GUI Packages   -------\
+
+     (use-package diminish)
+     (eval-after-load "eldoc"
+       '(diminish 'eldoc-mode))
+
+     (diminish 'abbrev-mode)
+
+     (use-package rainbow-mode
+       :defer t
+       :diminish)
+
+     (use-package rainbow-delimiters
+       :diminish
+       :hook (prog-mode . rainbow-delimiters-mode))
+
+     (use-package dired
+       :ensure nil
+       :commands (dired dired-jump)
+       :bind (("C-x C-j" . dired-jump))
+       :custom ((dired-listing-switches "-agho --group-directories-first")))
+
+     (autoload 'dired-omit-mode "dired-x")
+
+     (use-package dired-single
+       :commands (dired dired-jump))
+
+     (use-package dired-ranger
+       :defer t)
+
+     (use-package dired-collapse
+       :defer t)
+
+     (use-package perspective
+       :defer t
+       :custom
+       (persp-mode-prefix-key (kbd "C-x x"))
+       :bind (("C-x k" . persp-kill-buffer*))
+       :init
+       (persp-mode))
+
+     (use-package emojify
+       :hook (erc-mode . emojify-mode)
+       :commands emojify-mode)
+
+   #+end_src
+
+
+** Fonts
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Fonts    -------\
+
+     ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
+
+   #+end_src
+
+
+** Theme
+
+   - Set custom theme dir
+   - Don't load theme in terminal mode
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Theme   -------\
+
+     (setq custom-theme-directory (concat user-emacs-directory "themes"))
+
+     (when (or (display-graphic-p)(daemonp))
+       (load-theme 'mf-spacegrey t))
+
+   #+end_src
+
+
+** Modeline
+
+   | Package  | Description                   |
+   |----------+-------------------------------|
+   | mlscroll | Scroll indicator for modeline |
+
+   - Set Vim layer indicator faces
+   - Flash Mode-Line instead of ring bell
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Modeline   -------\\
+
+     (if (display-graphic-p)
+	 (use-package mlscroll
+	   :config (mlscroll-mode 1)))
+
+     (if (daemonp)
+	 (use-package mlscroll
+	   :hook (server-after-make-frame . mlscroll-mode)))
+
+     (setq evil-normal-state-tag
+	   (propertize " <N> " 'face '((:background "DarkGoldenrod2" :foreground "black")))
+	   evil-emacs-state-tag
+	   (propertize " <E> " 'face '((:background "SkyBlue2"       :foreground "black")))
+	   evil-insert-state-tag
+	   (propertize " <I> " 'face '((:background "chartreuse3"    :foreground "black")))
+	   evil-replace-state-tag
+	   (propertize " <R> " 'face '((:background "chocolate"      :foreground "black")))
+	   evil-motion-state-tag
+	   (propertize " <M> " 'face '((:background "plum3"          :foreground "black")))
+	   evil-visual-state-tag
+	   (propertize " <V> " 'face '((:background "gray"           :foreground "black")))
+	   evil-operator-state-tag
+	   (propertize " <O> " 'face '((:background "sandy brown"    :foreground "black"))))
+
+     (setq ring-bell-function
+	   (lambda ()
+	     (let ((orig-fg (face-foreground 'mode-line)))
+	       (set-face-foreground 'mode-line "#000")
+	       ;; (set-face-foreground 'mode-line "#fd5300")
+	       (run-with-idle-timer 0.1 nil
+				    (lambda (fg) (set-face-foreground 'mode-line fg))
+				    orig-fg))))
 
    #+end_src
 
@@ -183,8 +418,9 @@
     | SaveHist   | Saves minibuffer history                      |
     | Marginalia | Additional mini-buffer completion information |
     | Orderless  | Orderless and wildcard completion support     |
-    | Consult    | Further mini-buffer completion                |
+    | Consult    | Replace I-Search                              |
     | Corfu      | Completion in region                          |
+    | Cape       | Completion functions for Corfu                |
     | Emacs      | Minibuffer settings                           |
 
     #+begin_src emacs-lisp :tangle ./mf-packages.el
@@ -241,12 +477,49 @@
 	:custom
 	(corfu-cycle t)
 	(corfu-auto t)
+	(corfu-quit-at-boundary t)
+	(corfu-quit-no-match t)
 	(corfu-auto-delay .5)
 	(corfu-auto-prefix 1)
 	;:config
 	;(corfu-global-mode)
 	:hook
 	(after-init . global-corfu-mode))
+
+      (use-package cape
+	;; Bind dedicated completion commands
+	;; Alternative prefix keys: C-c p, M-p, M-+, ...
+	:bind (("C-c p p" . completion-at-point) ;; capf
+	       ("C-c p t" . complete-tag)        ;; etags
+	       ("C-c p d" . cape-dabbrev)        ;; or dabbrev-completion
+	       ("C-c p h" . cape-history)
+	       ("C-c p f" . cape-file)
+	       ("C-c p k" . cape-keyword)
+	       ("C-c p s" . cape-symbol)
+	       ("C-c p a" . cape-abbrev)
+	       ("C-c p l" . cape-line)
+	       ("C-c p w" . cape-dict)
+	       ("C-c p \\" . cape-tex)
+	       ("C-c p _" . cape-tex)
+	       ("C-c p ^" . cape-tex)
+	       ("C-c p &" . cape-sgml)
+	       ("C-c p r" . cape-rfc1345))
+	:init
+	;; Add `completion-at-point-functions', used by `completion-at-point'.
+	;; NOTE: The order matters!
+	(add-to-list 'completion-at-point-functions #'cape-dabbrev)
+	(add-to-list 'completion-at-point-functions #'cape-file)
+	(add-to-list 'completion-at-point-functions #'cape-elisp-block)
+	;;(add-to-list 'completion-at-point-functions #'cape-history)
+	;;(add-to-list 'completion-at-point-functions #'cape-keyword)
+	;;(add-to-list 'completion-at-point-functions #'cape-tex)
+	;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+	;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+	;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+	;;(add-to-list 'completion-at-point-functions #'cape-dict)
+	;;(add-to-list 'completion-at-point-functions #'cape-symbol)
+	;;(add-to-list 'completion-at-point-functions #'cape-line)
+      )
 
       (use-package emacs
 	:init
@@ -274,6 +547,10 @@
 
 *** AI
 
+    | Package | Description                |
+    |---------+----------------------------|
+    | gptel   | No-frills emacs gpt client |
+    
     #+begin_src emacs-lisp :tangle ./mf-packages.el
 					      ;-------   AI   -------\
 
@@ -288,8 +565,13 @@
 
 *** Spelling
 
-- Set $DICPATH to "$HOME/Documents/Dictionaries" for hunspell.
-- Tell ispell-mode to use hunspell.
+    | Package    | Description         |
+    |------------+---------------------|
+    | flyspell   | Spell checking mode |
+    | whitespace | Show whitespace     |
+
+    - Set $DICPATH to "$HOME/Documents/Dictionaries" for hunspell.
+    - Tell ispell-mode to use hunspell.
 
      #+begin_src emacs-lisp :tangle ./mf-packages.el
 
@@ -302,18 +584,25 @@
        (use-package flyspell
 	 :hook ((org-mode . flyspell-mode)
 		(text-mode . flyspell-mode)
-		(prog-mode . flyspell-prog-mode)))
+		(prog-mode . flyspell-prog-mode))
+       :bind ("C-c f" . flyspell-mode))
 
-       (global-set-key (kbd "C-c f") 'flyspell-mode )
-
-       (use-package whitespace)
-
-       (global-set-key (kbd "C-c w") 'whitespace-mode )
+       (use-package whitespace
+       :bind ("C-c w" . whitespace-mode))
 
      #+end_src
 
 
 *** LSP
+
+    | Package      | Description                    |
+    |--------------+--------------------------------|
+    | eglot        | Lsp backend                    |
+    | web-mode     | Show whitespace                |
+    | skewer-mode  |                                |
+    | python-mode  | Major mode for editing python  |
+    | haskell-mode | Major mode for editing haskell |
+    | racket-mode  | Major mode for editing racket  |
 
     #+begin_src emacs-lisp :tangle ./mf-packages.el
 					      ;-------   LSP   -------\
@@ -358,6 +647,10 @@
 
 ** REPL
 
+    | Package | Description |
+    |---------+-------------|
+    | slime   | Lisp REPL   |
+   
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 
      (use-package slime
@@ -386,7 +679,7 @@
        :config (projectile-mode)
        ;;:custom ((projectile-completion-system 'vertico))
        :bind-keymap
-       ("C-c p" . projectile-command-map)
+       ("C-c P" . projectile-command-map)
        :init
        (when (file-directory-p "~/Documents")
 	 (setq projectile-project-search-path '("~/Documents")))
@@ -397,6 +690,10 @@
      ;; :Custom                             ; opens diff in current buffer
      ;; (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
 
+     ;; uninstall after emacs 29.1
+     (use-package sqlite3
+       :after magit)
+
      (use-package forge
        :after magit)
 
@@ -404,6 +701,10 @@
 
 
 ** Terminals
+
+    | Package | Description       |
+    |---------+-------------------|
+    | vterm   | Terminal emulator |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					     ;-------   Terminals   -------\
@@ -420,6 +721,10 @@
 
 ** Remote Access
 
+    | Package | Description                                 |
+    |---------+---------------------------------------------|
+    | tramp   | Transparent Remote Access Multiple Protocol |
+
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					     ;-------   Tramp   -------\
 
@@ -432,6 +737,12 @@
 
 
 ** ERC
+
+    | Package      | Description              |
+    |--------------+--------------------------|
+    | erc          | Emacs client for IRC     |
+    | erc-hl-nicks | Hilight nicknames in erc |
+    | erc-image    | Display images in erc    |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					      ;-------   ERC   -------\
@@ -475,12 +786,29 @@
    #+end_src
 
 
+** Bookmarks
+
+    | Package | Description                |
+    |---------+----------------------------|
+    | buku    | Org mode browser bookmarks |
+   
+   #+begin_src emacs-lisp :tangle ./mf-packages.el
+
+     (use-package ebuku
+       :defer t
+       :config
+       (setq ebuku-buku-path "/usr/bin/buku"))
+
+   #+end_src
+
+
 ** File Types
 
     | Package   | Descrition              |
     |-----------+-------------------------|
     | Pdf-Tools | Pdf support             |
-    |           | Handling for .ino files |
+
+    - Load arduino files (.ino) in c-mode
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					    ;-------   File Types   -------\
@@ -532,11 +860,9 @@
        (evil-mode 1)
        (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
        (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
-
        ;; Use visual line motions even outside of visual-line-mode buffers
        (evil-global-set-key 'motion "j" 'evil-next-visual-line)
        (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
-
        (evil-set-initial-state 'messages-buffer-mode 'normal)
        (evil-set-initial-state 'dashboard-mode 'normal))
 
@@ -569,8 +895,10 @@
 
 ** Binds
 
-   - Vim binds for dired.
-   - Open 'Recent Files' buffer.
+   - Complain about arrow keys
+   - Vim binds for dired
+   - Open 'Recent Files' buffer
+   - Keybind for minibuffer
 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Key Binds   -------\
@@ -611,10 +939,15 @@
 
 ** Which and General Keys
 
-   | Function         | Description                     |
-   |------------------+---------------------------------|
-   | mf/general-keys  | Define leading keys in keybinds |
-   | hydra-text-scale | Scale text with j and k         |
+   | Function            | Description                     |
+   |---------------------+---------------------------------|
+   | mf/general-keys     | Define leading keys in keybinds |
+   | hydra-text-scale    | Scale text with j and k         |
+   | hydra-find-file     |                                 |
+   | hydra-find-config   |                                 |
+   | hydra-find-dir      |                                 |
+   | hydra-switch-buffer |                                 |
+   | hydra-switch-window |                                 |
 
    #+begin_src emacs-lisp :tangle ./mf-keys.el
 					     ;-------   Which and Leader Keys   -------\
@@ -732,9 +1065,9 @@
 
 ** Org Functions
 
-   | Function                | Description                                                 |
-   |-------------------------+-------------------------------------------------------------|
-   | mf/org-mode-setup       | Diminish indent mode, visual line mode and evil auto indent |
+   | Function          | Description                                   |
+   |-------------------+-----------------------------------------------|
+   | mf/org-mode-setup | Diminish indent mode, and add indent features |
 
    #+begin_src emacs-lisp :tangle ./mf-org.el
 					     ;-------   Org Function   -------\
@@ -750,88 +1083,107 @@
 
 ** Org Packages
 
+   | Package     | Description                                  |
+   |-------------+----------------------------------------------|
+   | org         | org-mode                                     |
+   | org-bullets | Hide all but one header asterisk and stylize |
+   | org-roam    | Zettlekasten for org-mode                    |
+   | org-roam-ui | Visualizer for org-roam                      |
+
     #+begin_src emacs-lisp :tangle ./mf-org.el
-					      ;-------   Packages   -------\
+					       ;-------   Packages   -------\
 
-      (use-package org
-	:pin org
-	:custom (org-directory "~/Org")
-	:commands (org-capture org-agenda)
-	:hook (org-mode . mf/org-mode-setup)
-	:config (setq org-startup-folded t
-		      ;;org-ellipsis " ▾"
-		      org-log-agenda-sater-with-log-mode t
-		      org-log-done 'time
-		      org-log-into-drawer t))
+       (use-package org
+	 :pin org
+	 :custom (org-directory "~/Org")
+	 :commands (org-capture org-agenda)
+	 :hook (org-mode . mf/org-mode-setup)
+	 :config (setq org-startup-folded t
+		       ;;org-ellipsis " ▾"
+		       org-log-agenda-sater-with-log-mode t
+		       org-log-done 'time
+		       org-log-into-drawer t)
+	 :bind (("C-c a" . org-agenda)
+		("C-c l" . org-store-link)
+		("C-c c" . org-capture)))
 
-      (setq org-todo-keywords
-	    '((type "TODO(t)" "HOLD(h)" "NEXT(n)" "|" "DONE(d!)")))
+      ;;(define-key global-map (kbd "C-c c")
+      ;;    (lambda () (interactive) (org-capture nil "jj")))
 
-      (setq org-refile-targets
-	    '(("Archive.org" :maxlevel . 1)
-	      ("Tasks.org" :maxlevel . 1)))
+       (setq org-todo-keywords
+	     '((type "TODO(t)" "HOLD(h)" "NEXT(n)" "|" "DONE(d!)")))
 
-      ;; Save Org buffers after refiling!
-      (advice-add 'org-refile :after 'org-save-all-org-buffers)
+       (setq org-refile-targets
+	     '(("Archive.org" :maxlevel . 1)
+	       ("Tasks.org" :maxlevel . 1)))
 
-      (use-package org-bullets
-	:hook (org-mode . org-bullets-mode))
+       ;; Save Org buffers after refiling!
+       (advice-add 'org-refile :after 'org-save-all-org-buffers)
 
-      (use-package org-roam
-	:custom
-	(org-roam-directory "~/Org/Roam")
-	(org-roam-completion-everywhere t)
-	(org-roam-capture-templates
-	 '(("p" "plain" plain
-	    "%?"
-	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	    :unnarrowed t)
-	   ("d" "Definition" plain
-	    "\n* Definition\n\n  - %?"
-	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	    :empty-lines 1
-	    :unnarrowed t)
-	   ("D" "Symbols Definition" plain
-	    "#+options: ^:{}\n#+startup: entitiespretty\n* nDefinition\n\n  - %?"
-	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	    :unnarrowed t)
-	   ("l" "Logic" plain
-	    "#+options: ^:{}\n#+startup: entitiespretty\n\n- A %?\n\n- B "
-	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	    :unnarrowed t)))
+       (use-package org-bullets
+	 :hook (org-mode . org-bullets-mode))
 
-	:bind (("C-c n l" . org-roam-buffer-toggle)
-	       ("C-c n f" . org-roam-node-find)
-	       ("C-c n i" . org-roam-node-insert)
-	       :map org-mode-map
-	       ("M-TAB"    . completion-at-point))
-	      :config
-	      (org-roam-setup))
+       (use-package org-roam
+	 :custom
+	 (org-roam-directory "~/Org/Roam")
+	 (org-roam-completion-everywhere t)
+	 (org-roam-capture-templates
+	  '(("p" "plain" plain
+	     "%?"
+	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	     :unnarrowed t)
+	    ("d" "Definition" plain
+	     "\n* Definition\n\n  - %?"
+	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	     :empty-lines 1
+	     :unnarrowed t)
+	    ("D" "Symbols Definition" plain
+	     "#+options: ^:{}\n#+startup: entitiespretty\n* nDefinition\n\n  - %?"
+	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	     :unnarrowed t)
+	    ("l" "Logic" plain
+	     "#+options: ^:{}\n#+startup: entitiespretty\n\n- A %?\n\n- B "
+	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	     :unnarrowed t)))
 
-      (use-package org-roam-ui
-	:after org-roam
-	;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-	;;         a hookable mode anymore, you're advised to pick something yourself
-	;;         if you don't care about startup time, use
-	;;  :hook (after-init . org-roam-ui-mode)
-	:init
-	(setq org-roam-ui-sync-theme t
-	      org-roam-ui-follow t
-	      org-roam-ui-open-on-start nil
-	      org-roam-ui-update-on-save t
-	      org-roam-ui-open-on-start t))
+	 :bind (("C-c n l" . org-roam-buffer-toggle)
+		("C-c n f" . org-roam-node-find)
+		("C-c n i" . org-roam-node-insert)
+		:map org-mode-map
+		("M-TAB"    . completion-at-point))
+	       :config
+	       (org-roam-setup))
 
-      (with-eval-after-load 'org
-	(org-babel-do-load-languages
-	 'org-babel-load-languages
-	 '((emacs-lisp . t)
-	   (C . t))))
+       (use-package org-roam-ui
+	 :after org-roam
+	 ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+	 ;;         a hookable mode anymore, you're advised to pick something yourself
+	 ;;         if you don't care about startup time, use
+	 ;;  :hook (after-init . org-roam-ui-mode)
+	 :init
+	 (setq org-roam-ui-sync-theme t
+	       org-roam-ui-follow t
+	       org-roam-ui-open-on-start nil
+	       org-roam-ui-update-on-save t
+	       org-roam-ui-open-on-start t))
+
+       (with-eval-after-load 'org
+	 (org-babel-do-load-languages
+	  'org-babel-load-languages
+	  '((emacs-lisp . t)
+	    (C . t))))
 
     #+end_src
 
 
 ** Org Agenda
 
+   | Variable                   | Description                |
+   |----------------------------+----------------------------|
+   | org-agenda-files           | Set org agenda files       |
+   | org-agenda-custom-commands | Add items to agenda prompt |
+   | org-tag-alist              | "                          |
+   
    #+begin_src emacs-lisp :tangle ./mf-org.el
 					     ;-------   Agenda   -------\
 
@@ -884,239 +1236,6 @@
 	     ("ee" . ?w)
 	     ("music" . ?p)
 	     ("idea" . ?i)))
-
-   #+end_src
-
-
-** Org Keys
-
-   #+begin_src emacs-lisp :tangle ./mf-org.el
-					     ;-------   Org Keys   -------\
-
-     ;;(define-key global-map "\C-cl" 'org-store-link)
-     (define-key global-map "\C-ca" 'org-agenda)
-     (define-key global-map "\C-cc" 'org-capture)
-     ;;(define-key global-map (kbd "C-c c")
-     ;;    (lambda () (interactive) (org-capture nil "jj")))
-   #+end_src
-
-
-* gui.el
-
-** Padding
-
-   | Package                    | Description |
-   |----------------------------+-------------|
-   | mf/visual-fill-column-wide |             |
-   | mf/visual-fill-column-wide |             |
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Padding   -------\
-
-     (defun mf/visual-fill-column-narrow ()
-       (setq visual-fill-column-width 77
-	     visual-fill-column-center-text t)
-	     (visual-fill-column-mode t))
-
-     (defun mf/visual-fill-column-wide ()
-       (setq visual-fill-column-width 100
-	     visual-fill-column-center-text t)
-	     (visual-fill-column-mode t))
-
-     (use-package visual-fill-column
-       :init
-       (mf/visual-fill-column-wide)
-       :hook  ((text-mode . visual-fill-column-mode)
-	       (Info-mode . mf/visual-fill-column-narrow))
-       :config
-       (global-visual-fill-column-mode t))
-
-     ;; (use-package info
-     ;;   :hook (Info-mode . mf/visual-fill-column-narrow))
-
-     ;; (use-package visual-fill-column
-     ;;   :init
-     ;;   (add-hook 'after-change-major-mode-hook
-     ;; 	    (lambda ()
-     ;; 	      (unless (eq major-mode 'minibuffer-mode)
-     ;; 		(mf/visual-fill-column-wide)))))
-
-     ;; (use-package visual-fill-column
-     ;;   :hook
-     ;;   ((org-mode . mf/visual-fill-column-wide)
-     ;;    (Info-mode . mf/visual-fill-column-narrow)
-     ;;    (gptel-mode . visual-fill-column-mode t)
-     ;;    (prog-mode . visual-fill-column-mode t))
-     ;;   :init
-     ;;   (setq-default visual-fill-column-width 100
-     ;; 		visual-fill-column-center-text t
-     ;; 		visual-fill-column-mode t))
-
-     ;; (add-hook 'minibuffer-mode-hook
-     ;; 	  (lambda ()
-     ;; 	    (setq-local visual-fill-column-center-text t
-     ;; 			visual-fill-column-width nil)))
-
-   #+end_src
-
-
-** GUI
-
-   - Remove all visual bloat
-
-   - Flash Mode-Line instead of ring bell
-
-   - Set Vim layer indicator faces
-
-   - [ ] * Full-screen in daemon mode*
-
-
-    #+begin_src emacs-lisp :tangle ./mf-gui.el
-					      ;-------   General   -------\
-
-      (scroll-bar-mode -1)
-      (menu-bar-mode -1)
-      (tool-bar-mode -1)
-      (global-set-key (kbd "<f5>") 'menu-bar-mode)
-      (set-fringe-mode 10)                    ; padding
-      (tooltip-mode -1)
-      (global-visual-line-mode t)
-      (diminish 'visual-line-mode)
-      (column-number-mode t)
-      (global-display-line-numbers-mode t)
-      (setq display-line-numbers-type 'relative)
-      (setq display-line-numbers-width 3)
-
-      (dolist (mode '(org-mode-hook
-		      Info-mode-hook
-		      term-mode-hook
-		      shell-mode-hook
-		      eshell-mode-hook
-		      vterm-mode-hook
-		      pdf-view-mode-hook))
-	(add-hook mode (lambda () (display-line-numbers-mode 0))))
-
-      ;;      (add-to-list 'visual-line-mode-ignored-major-modes 'minibuffer-mode)
-
-    #+end_src
-
-
-*** Gui Packages
-
-    | Package            | Description                              |
-    |--------------------+------------------------------------------|
-    | Diminish           | Hide selected modes from modeline        |
-    | Rainbow-Delimiters | Color parethesies                        |
-    | mlscroll           | Document location indicator for modeline |
-
-    #+begin_src emacs-lisp :tangle ./mf-gui.el
-					      ;-------   GUI Packages   -------\
-
-      (use-package diminish)
-      (eval-after-load "eldoc"
-	'(diminish 'eldoc-mode))
-
-      (diminish 'abbrev-mode)
-
-      (use-package rainbow-mode
-	:defer t
-	:diminish)
-
-      (use-package rainbow-delimiters
-	:diminish
-	:hook (prog-mode . rainbow-delimiters-mode))
-
-      (use-package dired
-	:ensure nil
-	:commands (dired dired-jump)
-	:bind (("C-x C-j" . dired-jump))
-	:custom ((dired-listing-switches "-agho --group-directories-first")))
-
-      (autoload 'dired-omit-mode "dired-x")
-
-      (use-package perspective
-	:defer t
-	:custom
-	(persp-mode-prefix-key (kbd "C-x x"))
-	:bind (("C-x k" . persp-kill-buffer*))
-	:init
-	(persp-mode))
-
-      (use-package dired-single
-	:commands (dired dired-jump))
-
-      (use-package dired-ranger
-	:defer t)
-
-      (use-package dired-collapse
-	:defer t)
-
-      (use-package emojify
-	:hook (erc-mode . emojify-mode)
-	:commands emojify-mode)
-
-    #+end_src
-
-
-*** Fonts
-
-    #+begin_src emacs-lisp :tangle ./mf-gui.el
-					      ;-------   Fonts    -------\
-
-      ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
-
-    #+end_src
-
-
-** Theme
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Theme   -------\
-
-     (setq custom-theme-directory (concat user-emacs-directory "themes"))
-
-     (when (or (display-graphic-p)(daemonp))
-       (load-theme 'mf-spacegrey t))
-
-   #+end_src
-
-
-** Modeline
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Modeline   -------\\
-
-     (if (display-graphic-p)
-	 (use-package mlscroll
-	   :config (mlscroll-mode 1)))
-
-     (if (daemonp)
-	 (use-package mlscroll
-	   :hook (server-after-make-frame . mlscroll-mode)))
-
-     (setq evil-normal-state-tag
-	   (propertize " <N> " 'face '((:background "DarkGoldenrod2" :foreground "black")))
-	   evil-emacs-state-tag
-	   (propertize " <E> " 'face '((:background "SkyBlue2"       :foreground "black")))
-	   evil-insert-state-tag
-	   (propertize " <I> " 'face '((:background "chartreuse3"    :foreground "black")))
-	   evil-replace-state-tag
-	   (propertize " <R> " 'face '((:background "chocolate"      :foreground "black")))
-	   evil-motion-state-tag
-	   (propertize " <M> " 'face '((:background "plum3"          :foreground "black")))
-	   evil-visual-state-tag
-	   (propertize " <V> " 'face '((:background "gray"           :foreground "black")))
-	   evil-operator-state-tag
-	   (propertize " <O> " 'face '((:background "sandy brown"    :foreground "black"))))
-
-     (setq ring-bell-function
-	   (lambda ()
-	     (let ((orig-fg (face-foreground 'mode-line)))
-	       (set-face-foreground 'mode-line "#000")
-	       ;; (set-face-foreground 'mode-line "#fd5300")
-	       (run-with-idle-timer 0.1 nil
-				    (lambda (fg) (set-face-foreground 'mode-line fg))
-				    orig-fg))))
 
    #+end_src
 
@@ -1204,6 +1323,7 @@
   | mf/org-dropbox            | Run dropbox when any ~/Dropbox file is open  |
 
   - reset gc-cons-threshold to a reasonabe value
+
   #+begin_src emacs-lisp :tangle ./mf-sh.el
 					    ;-------   Save Hooks   -------\
 
@@ -1236,6 +1356,8 @@
 
 
 * Plans
+** Tab bar mode
+** UNABLE TO LOAD UNSPECIFIED BG
 ** Feature/Behavior
 *** terminal version
     - tangle to one file for a single when check?
