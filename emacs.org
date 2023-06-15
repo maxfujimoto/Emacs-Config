@@ -9,8 +9,8 @@
      - The default is 800 000 bytes
    - Display Emacs load time and gcs
    - Refresh dwm blocks if in daemon mode
-   - Custom scratch message
    - Inhibit startup Message
+   - Custom scratch message (WiP)
 
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   Startup   -------\
@@ -30,9 +30,39 @@
 	       (lambda ()
 		 (shell-command "pkill -RTMIN+7 dwmblocks"))))
 
-     (setq initial-scratch-message "")
 
      (setq inhibit-startup-message t)
+
+     (setq quotes
+	   '("\"Be yourself; everyone else is already taken. - Oscar Wilde\"  - Gpt3.5"
+	     "\"I have not failed. I've just found 10,000 ways that won't work. - Thomas Edison\"  - Gpt3.5"
+	     "\"If you want to achieve greatness, stop asking for permission. - Unknown\"  - Gpt3.5"
+	     "\"The biggest risk is not taking any risk. In a world that's changing really quickly, the only strategy that is guaranteed to fail is not taking risks. - Mark Zuckerberg\" - Gpt3.5"))
+
+     (defun insert-random-quote ()
+       (interactive)
+       (let ((index (random (length quotes))))
+	 (with-current-buffer "*scratch*"
+	   (goto-char (point-max))
+	   (insert (concat ";; " (nth index quotes) "\n\n")))))
+
+     (setq initial-scratch-message nil)
+     (add-hook 'server-after-make-frame-hook 'insert-random-quote)
+
+   #+end_src
+
+
+** Native Comp
+
+   - Turn off compiler warnings
+   - Set the native comp cache directory
+
+   #+begin_src emacs-lisp :tangle ./init.el
+					     ;-------   Native Comp   -------\
+
+     ;; (setq native-comp-async-report-warnings-errors nil)
+
+     (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
 
    #+end_src
 
@@ -85,41 +115,19 @@
    - Enable buffer auto-revert (auto-update)
      - Disable Auto reverting in Buffer-menu-mode
    - Open Buffer List in same window.
-   - Configure auth-source
-   - Quit bind prompts for confirmation in graphical mode
    - Restore session on restart
    - Relative line numbers
+   - Configure auth-source
+   - Quit bind prompts for confirmation in graphical mode
 
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   General   -------\
 
-     (use-package autorevert)
-     (setq global-auto-revert-ignore-modes (list 'Buffer-menu-mode))
-     (setq global-auto-revert-non-file-buffers t)
-     (global-auto-revert-mode t)
-
-     (setq quotes
-	   '("Be yourself; everyone else is already taken. - Oscar Wilde"
-	     "I have not failed. I've just found 10,000 ways that won't work. - Thomas Edison"
-	     "If you want to achieve greatness, stop asking for permission. - Unknown"
-	     "The biggest risk is not taking any risk. In a world that's changing really quickly, the only strategy that is guaranteed to fail is not taking risks. - Mark Zuckerberg"))
-
-     (defun insert-random-quote ()
-       (interactive)
-       (let ((index (random (length quotes))))
-	 (with-current-buffer "*scratch*"
-	   (goto-char (point-max))
-	   (insert (concat ";; " (nth index quotes) "\n\n")))))
-
-     (add-hook 'server-after-make-frame-hook 'insert-random-quote)
-
-     (defadvice kill-line (before kill-line-autoreindent activate)
-       "Kill excess whitespace when joining lines.
-	  If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
-       (when (and (eolp) (not (bolp)))
-	 (save-excursion
-	   (forward-char 1)
-	   (just-one-space 1))))
+     (use-package autorevert
+       :init
+       (setq global-auto-revert-ignore-modes (list 'Buffer-menu-mode))
+       (setq global-auto-revert-non-file-buffers t)
+       (global-auto-revert-mode t))
 
      (setq display-buffer-alist
 	   (cons
@@ -140,6 +148,84 @@
 
      (desktop-save-mode 0)
      ;; enable breaks bufferp switching
+
+   #+end_src
+
+
+** Def Advice
+
+   - Remove excess whitespace when joining lines
+   - Emacs cut and copy work on entire lines if no active region
+   - Delete matching parenthesis with C-backspace
+   - 'Block-undo' marcros to save undo space
+   - Switch to new windows when created
+   - Add point to tag marker ring when calling functions that will move your cursor
+
+   #+begin_src emacs-lisp :tangle ./init.el
+					     ;-------   DefAdvice   -------\
+
+     (defadvice kill-line (before kill-line-autoreindent activate)
+       "Kill excess whitespace when joining lines.
+	       If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
+       (when (and (eolp) (not (bolp)))
+	 (save-excursion
+	   (forward-char 1)
+	   (just-one-space 1))))
+
+     (defadvice kill-ring-save (before slick-copy activate compile)
+       "When called interactively with no active region, copy a single line instead."
+       (interactive
+	(if mark-active (list (region-beginning) (region-end))
+	  (message "Single line killed")
+	  (list (line-beginning-position)
+		(line-beginning-position 2)))))
+
+     (defadvice kill-region (before slick-cut activate compile)
+       "When called interactively with no active region, kill a single line instead."
+       (interactive
+	(if mark-active (list (region-beginning) (region-end))
+	  (list (line-beginning-position)
+		(line-beginning-position 2)))))
+
+     (defadvice backward-kill-word (around delete-pair activate)
+       "Killing open parenthesis with backwards-kill-word kills close patenthesis"
+       (if (eq (char-syntax (char-before)) ?\()
+	   (progn
+	     (backward-char 1)
+	     (save-excursion
+	       (forward-sexp 1)
+	       (delete-char -1))
+	     (forward-char 1)
+	     (append-next-kill)
+	     (kill-backward-chars 1))
+	 ad-do-it))
+
+     (defun block-undo (fn &rest args)
+       (let ((marker (prepare-change-group)))
+	 (unwind-protect (apply fn args)
+	   (undo-amalgamate-change-group marker))))
+
+     (dolist (fn '(kmacro-call-macro
+		   kmacro-exec-ring-item
+		   dot-mode-execute
+		   apply-macro-to-region-lines))
+       (advice-add fn :around #'block-undo))
+
+     (defun mf/window-follow (&rest _arg)
+       "Advice to follow a function which spawn a window."
+       (other-window 1))
+
+     (advice-add 'split-window-below :after #'mf/window-follow)
+     (advice-add 'split-window-right :after #'mf/window-follow)
+
+      (defun mf/add-point-to-find-tag-marker-ring (&rest r)
+	"Handy advising function to push point to the tag marker stack (R ignored)."
+	(require 'etags)
+	(xref-push-marker-stack))
+
+      (advice-add 'find-function :before 'mf/add-point-to-find-tag-marker-ring)
+      (advice-add 'consult-ripgrep :before 'mf/add-point-to-find-tag-marker-ring)
+      (advice-add 'consult-line :before 'mf/add-point-to-find-tag-marker-ring)
 
    #+end_src
 
@@ -165,12 +251,13 @@
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   Load Paths   -------\
 
-     (load (concat user-emacs-directory "mf-gui.el"))
      (load (concat user-emacs-directory "mf-packages.el"))
      (load (concat user-emacs-directory "mf-keys.el"))
      (load (concat user-emacs-directory "mf-org.el"))
      (load (concat user-emacs-directory "mf-templates.el"))
+     (load (concat user-emacs-directory "mf-gui.el"))
      (load (concat user-emacs-directory "mf-sh.el"))
+
 
      (setq custom-file (locate-user-emacs-file "mf-custom.el"))
      ;; (load custom-file 'noerror 'nomessage)
@@ -179,213 +266,8 @@
    #+end_src
 
 
-* gui.el
-
-** General
-
-   - Remove all visual bloat
-   - Set visual line mode t
-   - Set line numbers relative for select modes
-
-    #+begin_src emacs-lisp :tangle ./mf-gui.el
-					      ;-------   General   -------\
-
-      (scroll-bar-mode -1)
-      (menu-bar-mode -1)
-      (tool-bar-mode -1)
-      (global-set-key (kbd "<f5>") 'menu-bar-mode)
-      (set-fringe-mode 10)                    ; padding
-      (tooltip-mode -1)
-      (global-visual-line-mode t)
-      (diminish 'visual-line-mode)
-      (column-number-mode t)
-      (global-display-line-numbers-mode t)
-      (setq display-line-numbers-type 'relative)
-      (setq display-line-numbers-width 3)
-
-      (dolist (mode '(org-mode-hook
-		      Info-mode-hook
-		      term-mode-hook
-		      shell-mode-hook
-		      eshell-mode-hook
-		      vterm-mode-hook
-		      pdf-view-mode-hook))
-	(add-hook mode (lambda () (display-line-numbers-mode 0))))
-
-    #+end_src
-
-
-** Padding
-
-   | Package                 | Description                            |
-   |-------------------------+----------------------------------------|
-   | mf/visual-fill-column-X | Set different fill column widths       |
-   | visual-fill-column      | Add vertical padding around the buffer |
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Padding   -------\
-
-     (defun mf/visual-fill-column-narrow ()
-       (setq visual-fill-column-width 77
-	     visual-fill-column-center-text t))
-
-     (defun mf/visual-fill-column-norm ()
-       (setq visual-fill-column-width 100
-	     visual-fill-column-center-text t))
-
-     (defun mf/visual-fill-column-wide ()
-       (setq visual-fill-column-width 150
-	     visual-fill-column-center-text t))
-
-     (defun mf/disable-visual-fill-column-mode ()
-       (visual-fill-column-mode -1))
-
-     (use-package visual-fill-column
-       :init
-       (mf/visual-fill-column-norm)
-       :hook  ((visual-line-mode . visual-fill-column-mode)
-	       (Info-mode . mf/visual-fill-column-narrow)
-	       (minibuffer-setup . mf/visual-fill-column-wide))
-       :config
-       (global-visual-fill-column-mode t))
-
-   #+end_src
-
-
-** Gui Packages
-
-   | Package            | Description                       |
-   |--------------------+-----------------------------------|
-   | Diminish           | Hide selected modes from modeline |
-   | Rainbow-Mode       | Render hex-colors as font hilight |
-   | Rainbow-Delimiters | Color parenthesizes               |
-   | Dired              | File manager                      |
-   | Perspective        | Group buffers in to perspectives  |
-   | Emojify            | Render Emojis                     |
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   GUI Packages   -------\
-
-     (use-package diminish)
-     (eval-after-load "eldoc"
-       '(diminish 'eldoc-mode))
-
-     (diminish 'abbrev-mode)
-
-     (use-package rainbow-mode
-       :defer t
-       :diminish)
-
-     (use-package rainbow-delimiters
-       :diminish
-       :hook (prog-mode . rainbow-delimiters-mode))
-
-     (use-package dired
-       :ensure nil
-       :commands (dired dired-jump)
-       :bind (("C-x C-j" . dired-jump))
-       :custom ((dired-listing-switches "-agho --group-directories-first")))
-
-     (autoload 'dired-omit-mode "dired-x")
-
-     (use-package dired-single
-       :commands (dired dired-jump))
-
-     (use-package dired-ranger
-       :defer t)
-
-     (use-package dired-collapse
-       :defer t)
-
-     (use-package perspective
-       :defer t
-       :custom
-       (persp-mode-prefix-key (kbd "C-x x"))
-       :bind (("C-x k" . persp-kill-buffer*))
-       :init
-       (persp-mode))
-
-     (use-package emojify
-       :hook (erc-mode . emojify-mode)
-       :commands emojify-mode)
-
-   #+end_src
-
-
-** Fonts
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Fonts    -------\
-
-     ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
-
-   #+end_src
-
-
-** Theme
-
-   - Set custom theme dir
-   - Don't load theme in terminal mode
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Theme   -------\
-
-     (setq custom-theme-directory (concat user-emacs-directory "themes"))
-
-     (when (or (display-graphic-p)(daemonp))
-       (load-theme 'mf-spacegrey t))
-
-   #+end_src
-
-
-** Modeline
-
-   | Package  | Description                   |
-   |----------+-------------------------------|
-   | mlscroll | Scroll indicator for modeline |
-
-   - Set Vim layer indicator faces
-   - Flash Mode-Line instead of ring bell
-
-   #+begin_src emacs-lisp :tangle ./mf-gui.el
-					     ;-------   Modeline   -------\\
-
-     (if (display-graphic-p)
-	 (use-package mlscroll
-	   :config (mlscroll-mode 1)))
-
-     (if (daemonp)
-	 (use-package mlscroll
-	   :hook (server-after-make-frame . mlscroll-mode)))
-
-     (setq evil-normal-state-tag
-	   (propertize " <N> " 'face '((:background "DarkGoldenrod2" :foreground "black")))
-	   evil-emacs-state-tag
-	   (propertize " <E> " 'face '((:background "SkyBlue2"       :foreground "black")))
-	   evil-insert-state-tag
-	   (propertize " <I> " 'face '((:background "chartreuse3"    :foreground "black")))
-	   evil-replace-state-tag
-	   (propertize " <R> " 'face '((:background "chocolate"      :foreground "black")))
-	   evil-motion-state-tag
-	   (propertize " <M> " 'face '((:background "plum3"          :foreground "black")))
-	   evil-visual-state-tag
-	   (propertize " <V> " 'face '((:background "gray"           :foreground "black")))
-	   evil-operator-state-tag
-	   (propertize " <O> " 'face '((:background "sandy brown"    :foreground "black"))))
-
-     (setq ring-bell-function
-	   (lambda ()
-	     (let ((orig-fg (face-foreground 'mode-line)))
-	       (set-face-foreground 'mode-line "#000")
-	       ;; (set-face-foreground 'mode-line "#fd5300")
-	       (run-with-idle-timer 0.1 nil
-				    (lambda (fg) (set-face-foreground 'mode-line fg))
-				    orig-fg))))
-
-   #+end_src
-
-
 * packages.el
+  - balkanize
 
 ** Help
 
@@ -454,11 +336,11 @@
 	      completion-category-defaults nil
 	      completion-category-overrides '((file (styles partial-completion)))))
 
-      (defun mf/get-project-root ()
-	(when (fboundp 'projectile-project-root)
-	  (projectile-project-root)))
-
       (use-package consult
+	:init
+	(defun mf/get-project-root ()
+	  (when (fboundp 'projectile-project-root)
+	    (projectile-project-root)))
 	:demand t
 	:bind (("C-s" . consult-line)
 	       ("C-M-l" . consult-imenu)
@@ -550,11 +432,12 @@
     | Package | Description                |
     |---------+----------------------------|
     | gptel   | No-frills emacs gpt client |
-    
+
     #+begin_src emacs-lisp :tangle ./mf-packages.el
 					      ;-------   AI   -------\
 
       (use-package gptel
+	:defer t
 	:init
 	(setq gptel-default-mode 'org-mode)
 	:config
@@ -608,8 +491,15 @@
 					      ;-------   LSP   -------\
 
       (use-package eglot
-	:hook ((c-mode c++mode obj-mode cuda-mode js-mode web-mode) . eglot-ensure)
-	:config (add-to-list 'eglot-server-programs '((c++-mode c-mode) "clangd")))
+	:init
+	(setq eglot-project-root-files '(".projectile" ".git" ".svn" ".hg" ".project"))
+	(setq eglot-ignored-server-capabilites '(:documentHighlightProvider))
+	(setq eglot-stay-out-of '(company capf flymake))
+	(add-to-list 'project-find-functions #'(lambda (dir) (directory-files dir nil "\\.c\\'")))
+	:hook
+	((c-mode c++mode obj-mode cuda-mode js-mode web-mode) . eglot-ensure)
+	:config
+	(add-to-list 'eglot-server-programs '((c++mode c-mode) "clangd")))
 
       (use-package web-mode
 	:mode "\\.html?\\'"
@@ -650,7 +540,7 @@
     | Package | Description |
     |---------+-------------|
     | slime   | Lisp REPL   |
-   
+
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 
      (use-package slime
@@ -668,11 +558,16 @@
    | Package    | Description                 |
    |------------+-----------------------------|
    | Projectile | Project interaction library |
+   | vc         | Built in version control    |
    | Magit      | Git porcilain               |
    | Forge      | Additional git features     |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					     ;-------   Version Control   -------\
+
+     (use-package vc
+       :custom
+       (vc-follow-symlinks t))
 
      (use-package projectile
        :diminish projectile-mode
@@ -681,12 +576,12 @@
        :bind-keymap
        ("C-c P" . projectile-command-map)
        :init
-       (when (file-directory-p "~/Documents")
-	 (setq projectile-project-search-path '("~/Documents")))
+       (when (file-directory-p "~/Code")
+	 (setq projectile-project-search-path '("~/Code")))
        (setq projectile-switch-project-action #'projectile-dired))
 
      (use-package magit
-     :commands magit-status)
+       :commands magit-status)
      ;; :Custom                             ; opens diff in current buffer
      ;; (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1)
 
@@ -791,7 +686,7 @@
     | Package | Description                |
     |---------+----------------------------|
     | buku    | Org mode browser bookmarks |
-   
+
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 
      (use-package ebuku
@@ -881,11 +776,11 @@
 	 :global-prefix "M-SPC"))
 
      (use-package which-key
-	:defer 0
-	:diminish which-key-mode
-	:config
-	(which-key-mode)
-	(setq which-key-idle-delay .55))
+       :defer 0
+       :diminish which-key-mode
+       :config
+       (which-key-mode)
+       (setq which-key-idle-delay .55))
 
      (use-package hydra
        :defer t)
@@ -956,7 +851,8 @@
        "t" '(:ignore t :which-key "toggles")
        "ts" '(hydra-text-scale/body :which-key "scale text")
        "tl" '(display-line-numbers-mode :which-key "line-numbers")
-       "tp" '(visual-fill-column-mode :which-key "padding")
+       "tP" '(visual-fill-column-mode :which-key "padding")
+       "tp" '(mf/toggle-visual-fill-column-width :which-key "vc-width")
 
        "f" '(:ignore t :which-key "find")
        "ff" '(hydra-find-file/body :which-key "find file")
@@ -1001,6 +897,7 @@
        "select dir"
        ("e" (dired (expand-file-name user-emacs-directory))"emacs" :exit t)
        ("c" (dired (expand-file-name "~/Code"))"Code" :exit t)
+       ("l" (dired (expand-file-name "~/.local/bin"))".local" :exit t)
        ("o" (dired (expand-file-name org-directory))"Org" :exit t)
        ("C" (dired (expand-file-name "~/.config"))"Config" :exit t)
        ("p" (dired (expand-file-name "~/Documents/PDFs"))"PDFs" :exit t)
@@ -1063,115 +960,118 @@
 
 * org.el
 
-** Org Functions
-
-   | Function          | Description                                   |
-   |-------------------+-----------------------------------------------|
-   | mf/org-mode-setup | Diminish indent mode, and add indent features |
-
-   #+begin_src emacs-lisp :tangle ./mf-org.el
-					     ;-------   Org Function   -------\
-
-     (defun mf/org-mode-setup ()
-       (diminish 'org-indent-mode)
-       ;;  (variable-pitch-mode 1)
-       (setq evil-auto-indent nil
-	     org-adapt-indentation t))
-
-   #+end_src
-
-
 ** Org Packages
 
-   | Package     | Description                                  |
-   |-------------+----------------------------------------------|
-   | org         | org-mode                                     |
-   | org-bullets | Hide all but one header asterisk and stylize |
-   | org-roam    | Zettlekasten for org-mode                    |
-   | org-roam-ui | Visualizer for org-roam                      |
+   | Package                   | Description                                   |
+   |---------------------------+-----------------------------------------------|
+   | mf/org-babel-tangle-conig | Aftersave hook to babel tangle to init files  |
+   | mf/org-mode-setup         | Diminish indent mode, and add indent features |
+   | org                       | org-mode                                      |
+   | org-bullets               | Hide all but one header asterisk and stylize  |
+   | org-roam                  | Zettlekasten for org-mode                     |
+   | org-roam-ui               | Visualizer for org-roam                       |
 
     #+begin_src emacs-lisp :tangle ./mf-org.el
-					       ;-------   Packages   -------\
+					      ;-------   Packages   -------\
 
-       (use-package org
-	 :pin org
-	 :custom (org-directory "~/Org")
-	 :commands (org-capture org-agenda)
-	 :hook (org-mode . mf/org-mode-setup)
-	 :config (setq org-startup-folded t
-		       ;;org-ellipsis " ▾"
-		       org-log-agenda-sater-with-log-mode t
-		       org-log-done 'time
-		       org-log-into-drawer t)
-	 :bind (("C-c a" . org-agenda)
-		("C-c l" . org-store-link)
-		("C-c c" . org-capture)))
+      (use-package org
+	:pin org
+	:init
+	(setq org-todo-keywords
+	      '((type "TODO(t)" "HOLD(h)" "NEXT(n)" "|" "DONE(d!)")))
+
+	(setq org-refile-targets
+	      '(("Archive.org" :maxlevel . 1)
+		("Tasks.org" :maxlevel . 1)))
+
+	;; Save Org buffers after refiling!
+	(advice-add 'org-refile :after 'org-save-all-org-buffers)
+
+	(defun mf/org-mode-setup ()
+	  (diminish 'org-indent-mode)
+	  ;;  (variable-pitch-mode 1)
+	  (setq evil-auto-indent nil
+		org-adapt-indentation t))
+
+	(defun mf/org-babel-tangle-config ()
+	  (when (string-equal (file-name-directory (buffer-file-name))
+			      (expand-file-name user-emacs-directory))
+	    (let ((org-confirm-babel-evaluate nil))
+	      (org-babel-tangle))))
+
+	(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'mf/org-babel-tangle-config)))
+
+	:custom (org-directory "~/Org")
+	:commands (org-capture org-agenda)
+	:hook (org-mode . mf/org-mode-setup)
+	:config (setq org-startup-folded t
+		      ;;org-ellipsis " ▾"
+		      org-log-agenda-sater-with-log-mode t
+		      org-log-done 'time
+		      org-log-into-drawer t)
+	:bind (("C-c a" . org-agenda)
+	       ("C-c l" . org-store-link)
+	       ("C-c c" . org-capture)))
 
       ;;(define-key global-map (kbd "C-c c")
       ;;    (lambda () (interactive) (org-capture nil "jj")))
 
-       (setq org-todo-keywords
-	     '((type "TODO(t)" "HOLD(h)" "NEXT(n)" "|" "DONE(d!)")))
+      (use-package org-bullets
+	:hook (org-mode . org-bullets-mode))
 
-       (setq org-refile-targets
-	     '(("Archive.org" :maxlevel . 1)
-	       ("Tasks.org" :maxlevel . 1)))
+      (use-package org-roam
+	:init
+	;; (defun my/org-roam-find-recipe ()
+	;;   "Find Org Roam notes in the recipe directory."
+	;;   (interactive)
+	;;   (org-roam-find-directory "~/Org/Recipes"))
+	:custom
+	(org-roam-directory "~/Org/Roam")
+	(org-roam-completion-everywhere t)
+	(org-roam-capture-templates
+	 '(("p" "plain" plain
+	    "%?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)
+	   ("d" "Definition" plain
+	    "\n* Definition\n\n  - %?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :empty-lines 1
+	    :unnarrowed t)
+	   ("D" "Symbols Definition" plain
+	    "#+options: ^:{}\n#+startup: entitiespretty\n* nDefinition\n\n  - %?"
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)
+	   ("l" "Logic" plain
+	    "#+options: ^:{}\n#+startup: entitiespretty\n\n- A %?\n\n- B "
+	    :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+	    :unnarrowed t)))
+	:bind (("C-c n l" . org-roam-buffer-toggle)
+	       ("C-c n f" . org-roam-node-find)
+	       ("C-c n i" . org-roam-node-insert)
+	       :map org-mode-map
+	       ("M-TAB"    . completion-at-point))
+	:config
+	(org-roam-setup))
 
-       ;; Save Org buffers after refiling!
-       (advice-add 'org-refile :after 'org-save-all-org-buffers)
+      (use-package org-roam-ui
+	:after org-roam
+	;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+	;;         a hookable mode anymore, you're advised to pick something yourself
+	;;         if you don't care about startup time, use
+	;;  :hook (after-init . org-roam-ui-mode)
+	:init
+	(setq org-roam-ui-sync-theme t
+	      org-roam-ui-follow t
+	      org-roam-ui-open-on-start nil
+	      org-roam-ui-update-on-save t
+	      org-roam-ui-open-on-start t))
 
-       (use-package org-bullets
-	 :hook (org-mode . org-bullets-mode))
-
-       (use-package org-roam
-	 :custom
-	 (org-roam-directory "~/Org/Roam")
-	 (org-roam-completion-everywhere t)
-	 (org-roam-capture-templates
-	  '(("p" "plain" plain
-	     "%?"
-	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	     :unnarrowed t)
-	    ("d" "Definition" plain
-	     "\n* Definition\n\n  - %?"
-	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	     :empty-lines 1
-	     :unnarrowed t)
-	    ("D" "Symbols Definition" plain
-	     "#+options: ^:{}\n#+startup: entitiespretty\n* nDefinition\n\n  - %?"
-	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	     :unnarrowed t)
-	    ("l" "Logic" plain
-	     "#+options: ^:{}\n#+startup: entitiespretty\n\n- A %?\n\n- B "
-	     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-	     :unnarrowed t)))
-
-	 :bind (("C-c n l" . org-roam-buffer-toggle)
-		("C-c n f" . org-roam-node-find)
-		("C-c n i" . org-roam-node-insert)
-		:map org-mode-map
-		("M-TAB"    . completion-at-point))
-	       :config
-	       (org-roam-setup))
-
-       (use-package org-roam-ui
-	 :after org-roam
-	 ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-	 ;;         a hookable mode anymore, you're advised to pick something yourself
-	 ;;         if you don't care about startup time, use
-	 ;;  :hook (after-init . org-roam-ui-mode)
-	 :init
-	 (setq org-roam-ui-sync-theme t
-	       org-roam-ui-follow t
-	       org-roam-ui-open-on-start nil
-	       org-roam-ui-update-on-save t
-	       org-roam-ui-open-on-start t))
-
-       (with-eval-after-load 'org
-	 (org-babel-do-load-languages
-	  'org-babel-load-languages
-	  '((emacs-lisp . t)
-	    (C . t))))
+      (with-eval-after-load 'org
+	(org-babel-do-load-languages
+	 'org-babel-load-languages
+	 '((emacs-lisp . t)
+	   (C . t))))
 
     #+end_src
 
@@ -1183,7 +1083,7 @@
    | org-agenda-files           | Set org agenda files       |
    | org-agenda-custom-commands | Add items to agenda prompt |
    | org-tag-alist              | "                          |
-   
+
    #+begin_src emacs-lisp :tangle ./mf-org.el
 					     ;-------   Agenda   -------\
 
@@ -1294,31 +1194,229 @@
 	    ("jj" "Journal" entry
 	     (file+olp+datetree "~/Org/journal.org")
 	     "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
-	     ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
 	     :clock-in :clock-resume
 	     :empty-lines 1)))
-	    ;; ("jm" "Meeting" entry
-	    ;;  (file+olp+datetree "~/Projects/Code/emacs-from-scratch/OrgFiles/Journal.org")
-	    ;;  "* %<%I:%M %p> - %a :meetings:\n\n%?\n\n"
-	    ;;  :clock-in :clock-resume
-	    ;;  :empty-lines 1)))
-
-	    ;; ("w" "Workflows")
-	    ;; ("we" "Checking Email" entry (file+olp+datetree "~/Projects/Code/emacs-from-scratch/OrgFiles/Journal.org")
-	    ;;  "* Checking Email :email:\n\n%?" :clock-in :clock-resume :empty-lines 1)
-
-	    ;; ("m" "Metrics Capture")
-	    ;; ("mw" "Weight" table-line (file+headline "~/Projects/Code/emacs-from-scratch/OrgFiles/Metrics.org" "Weight")
-	    ;;  "| %U | %^{Weight} | %^{Notes} |" :kill-buffer t)))
 
  #+end_src
+
+
+* gui.el
+
+** Padding
+
+   | Package               | Description                               |
+   |-----------------------+-------------------------------------------|
+   | mf/visual-fill-column | Set fill column 'width' and 'center text' |
+   | visual-fill-column    | Add vertical padding around the buffer    |
+
+   - Truncate package menu lines
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Padding   -------\
+
+     (use-package visual-fill-column
+       :init
+       (defun mf/visual-fill-column (width center)
+	 "Set visual-fill-column-width and visual-fill-column-center-text."
+	 (interactive "nEnter the width: \nCenter text? (t or nil): ")
+	 (setq visual-fill-column-width width
+	       visual-fill-column-center-text center))
+
+       (defun mf/toggle-visual-fill-column-width ()
+	 "Toggle between visual fill column widths 75, 100, 150, and 0."
+	 (interactive)
+	 (setq visual-fill-column-width
+	       (cond ((= visual-fill-column-width 75) 100)
+		     ((= visual-fill-column-width 100) 150)
+		     ((= visual-fill-column-width 150) 0)
+		     (t 75))))
+
+       (add-hook 'package-menu-mode-hook (lambda () (setq truncate-lines t)))
+       (add-hook 'package-menu-mode-hook (lambda () (visual-line-mode -1)))
+
+       (mf/visual-fill-column 100 t)
+       :hook  ((visual-line-mode . visual-fill-column-mode)
+	       (Info-mode . (lambda () (mf/visual-fill-column 75 t)))
+	       (minibuffer-setup . (lambda () (mf/visual-fill-column 150 t)))
+	       (package-menu-mode . (lambda () (mf/visual-fill-column 150 t))))
+       :config
+       (global-visual-fill-column-mode t))
+
+   #+End_src
+
+
+** General
+
+   - Remove all visual bloat
+   - Set visual line mode t
+   - Set fringe padding
+   - Set line numbers relative for select modes
+
+    #+begin_src emacs-lisp :tangle ./mf-gui.el
+					      ;-------   General   -------\
+
+      (scroll-bar-mode -1)
+      (menu-bar-mode -1)
+      (tool-bar-mode -1)
+      (global-set-key (kbd "<f5>") 'menu-bar-mode)
+      (tooltip-mode -1)
+      (set-fringe-mode 10)
+      (global-visual-line-mode t)
+      (column-number-mode t)
+      (global-display-line-numbers-mode t)
+      (setq display-line-numbers-type 'relative)
+      (setq display-line-numbers-width 3)
+
+      (dolist (mode '(org-mode-hook
+		      Info-mode-hook
+		      term-mode-hook
+		      shell-mode-hook
+		      eshell-mode-hook
+		      vterm-mode-hook
+		      pdf-view-mode-hook))
+	(add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+    #+end_src
+
+
+** Gui Packages
+
+   | Package            | Description                       |
+   |--------------------+-----------------------------------|
+   | Diminish           | Hide selected modes from modeline |
+   | Rainbow-Mode       | Render hex-colors as font hilight |
+   | Rainbow-Delimiters | Color parenthesizes               |
+   | Dired              | File manager                      |
+   | Perspective        | Group buffers in to perspectives  |
+   | Emojify            | Render Emojis                     |
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   GUI Packages   -------\
+
+     (use-package diminish
+       :config
+       (diminish 'visual-line-mode)
+       (diminish 'eldoc-mode)
+       (diminish 'abbrev-mode))
+
+     (use-package rainbow-mode
+       :defer t
+       :diminish)
+
+     (use-package rainbow-delimiters
+       :diminish
+       :hook (prog-mode . rainbow-delimiters-mode))
+
+     (use-package dired
+       :ensure nil
+       :commands (dired dired-jump)
+       :bind (("C-x C-j" . dired-jump))
+       :custom ((dired-listing-switches "-agho --group-directories-first")))
+
+     (autoload 'dired-omit-mode "dired-x")
+
+     (use-package dired-single
+       :commands (dired dired-jump))
+
+     (use-package dired-ranger
+       :defer t)
+
+     (use-package dired-collapse
+       :defer t)
+
+     (use-package perspective
+       :defer t
+       :custom
+       (persp-mode-prefix-key (kbd "C-x x"))
+       :bind (("C-x k" . persp-kill-buffer*))
+       :init
+       (persp-mode))
+
+     (use-package emojify
+       :hook (erc-mode . emojify-mode)
+       :commands emojify-mode)
+
+   #+end_src
+
+
+** Fonts
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Fonts    -------\
+
+     ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
+
+   #+end_src
+
+
+** Theme
+
+   - Set custom theme dir
+   - Don't load theme in terminal mode
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Theme   -------\
+
+     (setq custom-theme-directory (concat user-emacs-directory "themes"))
+
+     (when (or (display-graphic-p)(daemonp))
+       (load-theme 'mf-spacegrey t))
+
+   #+end_src
+
+
+** Modeline
+
+   | Package  | Description                   |
+   |----------+-------------------------------|
+   | mlscroll | Scroll indicator for modeline |
+
+   - Set Vim layer indicator faces
+   - Flash Mode-Line instead of ring bell
+
+   #+begin_src emacs-lisp :tangle ./mf-gui.el
+					     ;-------   Modeline   -------\
+
+     (if (display-graphic-p)
+	 (use-package mlscroll
+	   :config (mlscroll-mode 1)))
+
+     (if (daemonp)
+	 (use-package mlscroll
+	   :hook (server-after-make-frame . mlscroll-mode)))
+
+     (with-eval-after-load 'evil
+       (setq evil-normal-state-tag
+	     (propertize " <N> " 'face '((:background "DarkGoldenrod2" :foreground "black")))
+	     evil-emacs-state-tag
+	     (propertize " <E> " 'face '((:background "SkyBlue2"       :foreground "black")))
+	     evil-insert-state-tag
+	     (propertize " <I> " 'face '((:background "chartreuse3"    :foreground "black")))
+	     evil-replace-state-tag
+	     (propertize " <R> " 'face '((:background "chocolate"      :foreground "black")))
+	     evil-motion-state-tag
+	     (propertize " <M> " 'face '((:background "plum3"          :foreground "black")))
+	     evil-visual-state-tag
+	     (propertize " <V> " 'face '((:background "gray"           :foreground "black")))
+	     evil-operator-state-tag
+	     (propertize " <O> " 'face '((:background "sandy brown"    :foreground "black")))))
+
+     (setq ring-bell-function
+	   (lambda ()
+	     (let ((orig-fg (face-foreground 'mode-line)))
+	       (set-face-foreground 'mode-line "#000")
+	       ;; (set-face-foreground 'mode-line "#fd5300")
+	       (run-with-idle-timer 0.1 nil
+				    (lambda (fg) (set-face-foreground 'mode-line fg))
+				    orig-fg))))
+
+   #+end_src
 
 
 * sh.el
 
   | Function                  | Description                                  |
   |---------------------------+----------------------------------------------|
-  | mf/org-babel-tangle-conig | Aftersave hook to babel tangle to init files |
   | mf/xrdb-xresources        | Aftersave hook to reinit .Xresources         |
   | mf/org-dropbox            | Run dropbox when any ~/Dropbox file is open  |
 
@@ -1326,14 +1424,6 @@
 
   #+begin_src emacs-lisp :tangle ./mf-sh.el
 					    ;-------   Save Hooks   -------\
-
-    (defun mf/org-babel-tangle-config ()
-      (when (string-equal (file-name-directory (buffer-file-name))
-			  (expand-file-name user-emacs-directory))
-	(let ((org-confirm-babel-evaluate nil))
-	  (org-babel-tangle))))
-
-    (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'mf/org-babel-tangle-config)))
 
 
     (defun mf/xrdb-xresources ()
@@ -1344,6 +1434,91 @@
 
     (add-hook 'conf-mode-hook (lambda () (add-hook 'after-save-hook #'mf/xrdb-xresources)))
 
+    (setq gc-cons-threshold (* 2 1000 1000))
+  #+end_src
+
+
+
+* Plans
+
+** Top
+
+*** normal mode tab doesnt insert chars but does org-cycle
+       (add-hook 'evil-normal-state-entry-hook
+        (lambda () (setq-local org-cycle-emulate-tab nil)))
+       ;; (define-key evil-normal-state-map (kbd "TAB") 'org-cycle)
+*** advice-add undo ignores whitespace that was added and removed
+*** Jump to end of word when corfu complete
+*** Theme
+    - Systemcrafters recomended theme patched with space gray colors
+    - FIX UNABLE TO LOAD UNSPECIFIED BG
+    - light mode toggle
+    - Inspo
+      - subline spacegray
+      - doom-challenger-deep
+      - doom-horizon
+    - Fonts
+      - code2001?
+      - Like brin?
+    - smerge show color fix
+    - Change contrast through day toggleable
+
+*** GPT in modeline
+    prompt from modeline wrapper, print result to small buffer messages or modeline
+*** Completion
+    - < snippet completion
+    - Cape Corfu
+    - Refine
+
+*** Evil Org mode
+    - vim keys to move org headers and list items
+
+*** [[https://www.reddit.com/r/emacs/comments/rlli0u/whats_your_favorite_defadvice/][defadvice]]
+   - Update to advice-add
+*** [[https://www.reddit.com/r/emacs/comments/ulsrb5/what_have_you_recently_removed_from_your_emacs/][removed]]
+
+*** Kill-ring
+    - Learn
+
+*** Tab bar mode
+    - Learn
+
+*** Visual-Fill
+    - minibuffer and refine
+    - Marginalia/mini-buffer no text wrapping
+*** Quote
+    - [[https://github.com/arecker/wilfred-say][wilfred quotes]]
+
+*** Indentation
+    - Different auto indent behavior
+*** Terminal version
+    - Defer all unnecessary loading
+*** LSP/eglot
+**** Function info in minibuffer control
+     pinned to static buffer?
+**** elsip
+**** Different completion delay for modes
+***** Writing slow delay
+***** Coding fast delay
+*** Spelling
+    - Ignore
+    - Custom dictionary
+    - Aspell
+    - I-Spell
+*** Undo
+    - undo-fu
+    - vundo
+    - undo-tree
+*** Mode-line
+**** Customize
+**** Truncate File Name in Mode Line
+     - Auto remove org roam file id
+     - truncate any name when mode line is small
+**** Doom inspiration
+**** Telephone Line
+*** Hooks
+**** Dropbox
+
     ;; (defun mf/dropbox ()
     ;;   (while (string-equal (file-name-directory)
     ;;		       (expand-file-name "~/Dropbox"))
@@ -1351,23 +1526,23 @@
 
     ;; (lambda () (add-hook 'after-save-hook #'mf/dropbox)
 
-	 (setq gc-cons-threshold (* 2 1000 1000))
-  #+end_src
+**** Dropbox Alternative Hook
+     - Hook to run dropbox or alternative while and for a minute after in buffers from dropbox dir.
+     - Remote File Backup and Source?
+**** Compile suckless?
+**** Tangle AIS
 
+*** Deal with files
+    - Undo tree
+    - Auto Save
+    - Archive
 
-* Plans
-** Tab bar mode
-** UNABLE TO LOAD UNSPECIFIED BG
-** Feature/Behavior
-*** terminal version
-    - tangle to one file for a single when check?
-    - even lighter
-*** Undo
-    - undo-fu
-    - vundo
-    - undo-tree
-*** Variable theme path for hydra
 *** Windows and Buffers
+**** Detect buffer and frame size and status
+     ;; (if (eq (frame-parameter nil 'fullscreen) 'maximized)
+     ;;     (message "Frame is maximized")
+     ;;   (message "Frame is not maximized"))
+
 **** Pin buffer in window
 **** Key Driven Choose Buffer Screen
      - Screen accessible through key bind
@@ -1384,78 +1559,99 @@
 **** Truncate File Name in Mode-Line
      - Auto remove org roam file id
      - truncate any name when mode line is small
-*** Deal with Auto-Save files
-*** Different auto indent behavior
-*** Marginalia/mini-buffer no text wrapping
-*** LSP/eglot
-**** Function info in minibuffer control
-     pinned to static buffer?
-**** elsip
-**** Different completion delay for modes
-***** Writing slow delay
-***** Coding fast delay
-*** Flyspell ignore
-**** Custom dictionary
-*** Custom Random Scratch Message
+**** detect buffer size and pad
+**** Window layout for ide
+
+*** visual box cursor can go anywhere
+
+** Feature/Behavior
+*** Minad Packages
+**** Embark
+     - actions for current selections
+       - rename etc
+**** Selectum
+     - alternative
+*** Arduino IDE
+*** Startup
+*** Modes
+**** Tramp
+     - Setup
+**** Work-Spaces
+     - Eyebrowse
+     - Perspecate
+**** Calc Mode
+**** Erc
+     - config
+**** TreeMacs
 *** straight.el?
+*** Native Comp Settings
 *** Gantt Charts
 *** Org
 **** Capture
 ***** Debugging with file pointer
 ***** Notes
 ***** Todos
+***** Templates
+
+    (setq org-capture-templates
+	  `(("t" "Tasks / Projects")
+	    ("tt" "Task" entry (file+olp "/Org/todo.org" "Captured")
+	     "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
+
+	    ("j" "Journal Entries")
+	    ("jj" "Journal" entry
+	     (file+olp+datetree "~/Org/journal.org")
+	     "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
+	     ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
+	     :clock-in :clock-resume
+	     :empty-lines 1)))
+	    ;; ("jm" "Meeting" entry
+	    ;;  (file+olp+datetree "~/Projects/Code/emacs-from-scratch/OrgFiles/Journal.org")
+	    ;;  "* %<%I:%M %p> - %a :meetings:\n\n%?\n\n"
+	    ;;  :clock-in :clock-resume
+	    ;;  :empty-lines 1)))
+
+	    ;; ("w" "Workflows")
+	    ;; ("we" "Checking Email" entry (file+olp+datetree "~/Projects/Code/emacs-from-scratch/OrgFiles/Journal.org")
+	    ;;  "* Checking Email :email:\n\n%?" :clock-in :clock-resume :empty-lines 1)
+
+	    ;; ("m" "Metrics Capture")
+	    ;; ("mw" "Weight" table-line (file+headline "~/Projects/Code/emacs-from-scratch/OrgFiles/Metrics.org" "Weight")
+	    ;;  "| %U | %^{Weight} | %^{Notes} |" :kill-buffer t)))
 ***** Journal?
 **** Agenda
 ***** Plan(ner)
 ***** dots
 ***** poporg
-**** Rabbit
+**** Org Mode Extensions
+***** Org Mode Literate Code Line Numbers
+      the tangled line numbers are displayed in the org mode code blocks
+***** Manipulating the Header In/Exclude Code-Block From Tangle
+**** Org Roam Setup
+***** Roam Bookmarks?
+**** habit
 ***** water plants
 ***** bills
 **** Ellipses
 **** Task Options?
 **** Autex
+**** Task Options?
 **** Orgzly?
 **** GTG David Allen
-**** bibtex roam
-**** Org LaTeX bibliography
+**** Latex
+      - export
+      - AUCTeX
+      - bibliography
+      - bibtex roam
 **** Org Mode Extensions
 ***** Org Mode Literate Code Line Numbers
       the tangled line numbers are displayed in the org mode code blocks
 ***** Manipulating the Header In/Exclude Code-Block From Tangle
 
-*** Mode-line
-**** Customize
-**** Doom inspiration
-**** Telephone Line
-*** Modes
-**** Tramp
-**** Calc Mode
-**** irc config
-*** Native Comp
-**** Optimize
-*** Minad Packages
-**** Corfu
-***** vs company?
-**** Cape
-**** Embark
-     - actions for current selections
-       - rename etc
-**** Selectum
-     - alternative
-*** Hooks
-**** Dropbox Alternative Hook
-     - Hook to run dropbox or alternative while and for a minute after in buffers from dropbox dir.
-     - Remote File Backup and Source?
-**** Compile suckless?
-**** Tangle AIS
-*** Arduino IDE
 *** Browser Bookmarks
-*** light mode toggle
-*** auth source?
-    alt that works with other programs
 *** Pomodoro
-*** TreeMacs
+*** comint-previous-input
+    - haskell repl rebind
 *** Make Dired Like ranger?
 *** lexical-binding
 *** Email
@@ -1466,22 +1662,10 @@
       - less functionality
 	- if i need a function bound i should bind it myself
       - Toggle-able so I still have access to the bloat
-** Logical Organization
-*** Determine Load Priority and Prerequisites
-*** Separate Files?
-** Theme
-*** Use systemcrafter suggested theme as base.
-*** Fonts
-**** New
-**** Like brin?
-*** Propperly fork theme
-*** inspo
-**** subline spacegray
-**** doom-horizon
 ** Bugs
 *** Dir Local Vars load after org mode
 **** all #+STARTUP: options don't work with .dir-locals.el
 
 *** Org Roam Capture swallowing new lines
     fixed in native comp
-    
+
