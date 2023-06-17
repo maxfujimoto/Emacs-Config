@@ -115,6 +115,7 @@
    - Enable buffer auto-revert (auto-update)
      - Disable Auto reverting in Buffer-menu-mode
    - Open Buffer List in same window.
+   - Frame defaults to full-screen maximized
    - Restore session on restart
    - Relative line numbers
    - Configure auth-source
@@ -128,6 +129,8 @@
        (setq global-auto-revert-ignore-modes (list 'Buffer-menu-mode))
        (setq global-auto-revert-non-file-buffers t)
        (global-auto-revert-mode t))
+
+     (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
      (setq display-buffer-alist
 	   (cons
@@ -160,13 +163,14 @@
    - 'Block-undo' marcros to save undo space
    - Switch to new windows when created
    - Add point to tag marker ring when calling functions that will move your cursor
+   - Unload themes before loading a theme
 
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   DefAdvice   -------\
 
      (defadvice kill-line (before kill-line-autoreindent activate)
        "Kill excess whitespace when joining lines.
-	       If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
+		  If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
        (when (and (eolp) (not (bolp)))
 	 (save-excursion
 	   (forward-char 1)
@@ -218,14 +222,18 @@
      (advice-add 'split-window-below :after #'mf/window-follow)
      (advice-add 'split-window-right :after #'mf/window-follow)
 
-      (defun mf/add-point-to-find-tag-marker-ring (&rest r)
-	"Handy advising function to push point to the tag marker stack (R ignored)."
-	(require 'etags)
-	(xref-push-marker-stack))
+     (defun mf/add-point-to-find-tag-marker-ring (&rest r)
+       "Handy advising function to push point to the tag marker stack (R ignored)."
+       (require 'etags)
+       (xref-push-marker-stack))
 
-      (advice-add 'find-function :before 'mf/add-point-to-find-tag-marker-ring)
-      (advice-add 'consult-ripgrep :before 'mf/add-point-to-find-tag-marker-ring)
-      (advice-add 'consult-line :before 'mf/add-point-to-find-tag-marker-ring)
+     (advice-add 'find-function :before 'mf/add-point-to-find-tag-marker-ring)
+     (advice-add 'consult-ripgrep :before 'mf/add-point-to-find-tag-marker-ring)
+     (advice-add 'consult-line :before 'mf/add-point-to-find-tag-marker-ring)
+
+     (define-advice load-theme (:before (&rest _args) theme-dont-propagate)
+       "Discard all themes before loading new."
+       (mapc #'disable-theme custom-enabled-themes))
 
    #+end_src
 
@@ -251,6 +259,10 @@
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   Load Paths   -------\
 
+     (setq custom-file (locate-user-emacs-file "mf-custom.el"))
+     ;; (load custom-file 'noerror 'nomessage)
+     (load custom-file)
+
      (load (concat user-emacs-directory "mf-packages.el"))
      (load (concat user-emacs-directory "mf-keys.el"))
      (load (concat user-emacs-directory "mf-org.el"))
@@ -259,9 +271,6 @@
      (load (concat user-emacs-directory "mf-sh.el"))
 
 
-     (setq custom-file (locate-user-emacs-file "mf-custom.el"))
-     ;; (load custom-file 'noerror 'nomessage)
-     (load custom-file)
 
    #+end_src
 
@@ -361,7 +370,7 @@
 	(corfu-auto t)
 	(corfu-quit-at-boundary t)
 	(corfu-quit-no-match t)
-	(corfu-auto-delay .5)
+	(corfu-auto-delay .1)
 	(corfu-auto-prefix 1)
 	;:config
 	;(corfu-global-mode)
@@ -495,7 +504,6 @@
 	(setq eglot-project-root-files '(".projectile" ".git" ".svn" ".hg" ".project"))
 	(setq eglot-ignored-server-capabilites '(:documentHighlightProvider))
 	(setq eglot-stay-out-of '(company capf flymake))
-	(add-to-list 'project-find-functions #'(lambda (dir) (directory-files dir nil "\\.c\\'")))
 	:hook
 	((c-mode c++mode obj-mode cuda-mode js-mode web-mode) . eglot-ensure)
 	:config
@@ -571,14 +579,16 @@
 
      (use-package projectile
        :diminish projectile-mode
-       :config (projectile-mode)
-       ;;:custom ((projectile-completion-system 'vertico))
-       :bind-keymap
-       ("C-c P" . projectile-command-map)
        :init
        (when (file-directory-p "~/Code")
 	 (setq projectile-project-search-path '("~/Code")))
-       (setq projectile-switch-project-action #'projectile-dired))
+       (setq projectile-switch-project-action #'projectile-dired)
+       :bind-keymap
+       ("C-c P" . projectile-command-map)
+       :config
+       (add-to-list 'project-find-functions #'(lambda (dir) (directory-files dir nil "\\.c\\'")))
+       (projectile-mode))
+       ;;:custom ((projectile-completion-system 'vertico))
 
      (use-package magit
        :commands magit-status)
@@ -776,11 +786,10 @@
 	 :global-prefix "M-SPC"))
 
      (use-package which-key
-       :defer 0
        :diminish which-key-mode
        :config
        (which-key-mode)
-       (setq which-key-idle-delay .55))
+       (setq which-key-idle-delay .33))
 
      (use-package hydra
        :defer t)
@@ -886,7 +895,7 @@
        ("<escape>" nil "exit" :exit t))
 
      (defhydra hydra-find-config (:timeout 4)
-       ("t" (find-file (concat custom-theme-directory "/mf-spacegrey-theme.el"))"theme" :exit t)
+       ("t" (find-file (concat custom-theme-directory "/doom-mfspacegrey-theme.el"))"theme" :exit t)
        ("d" (find-file (expand-file-name "~/.config/mf-dwm/config.h"))"dwm" :exit t)
        ("D" (find-file (expand-file-name "~/.config/mf-dwm/config.def.h"))"dwm" :exit t)
        ("x" (find-file (expand-file-name "~/.xinitrc"))".xinitrc" :exit t)
@@ -1360,7 +1369,10 @@
      (setq custom-theme-directory (concat user-emacs-directory "themes"))
 
      (when (or (display-graphic-p)(daemonp))
-       (load-theme 'mf-spacegrey t))
+       (use-package doom-themes
+	 :defer t)
+       (load-theme 'doom-mfspacegrey t))
+
 
    #+end_src
 
@@ -1377,13 +1389,34 @@
    #+begin_src emacs-lisp :tangle ./mf-gui.el
 					     ;-------   Modeline   -------\
 
-     (if (display-graphic-p)
-	 (use-package mlscroll
-	   :config (mlscroll-mode 1)))
+
+     (use-package mlscroll
+       :if (display-graphic-p)
+       :unless (daemonp)
+       :config
+       (mlscroll-mode 1))
+
 
      (if (daemonp)
-	 (use-package mlscroll
-	   :hook (server-after-make-frame . mlscroll-mode)))
+	 (add-hook 'server-after-make-frame-hook #'mlscroll-mode))
+
+     ;; (use-package mlscroll
+     ;;   :if (display-graphic-p)
+     ;;   :init
+     ;;   (mlscroll-mode 1)
+     ;;   ;; :config
+     ;;   ;; (mlscroll-mode 1)
+     ;;   ;; :if (daemonp)
+     ;;   ;; :hook (server-after-init . mlscroll-mode)
+     ;;   :hook (server-after-make-frame . mlscroll-mode))
+
+     ;; (use-package mlscroll
+     ;;   ;; :if (display-graphic-p)
+     ;;   :init
+     ;;   (mlscroll-mode 1)
+     ;;   ;; :if (daemonp)
+     ;;   :hook ((server-after-init . mlscroll-mode)
+     ;; 	 (server-after-make-frame . mlscroll-mode)))
 
      (with-eval-after-load 'evil
        (setq evil-normal-state-tag
@@ -1425,7 +1458,6 @@
   #+begin_src emacs-lisp :tangle ./mf-sh.el
 					    ;-------   Save Hooks   -------\
 
-
     (defun mf/xrdb-xresources ()
       (when (string-equal (buffer-file-name)
 			  (expand-file-name "~/.dotfiles/.Xresources"))
@@ -1435,6 +1467,7 @@
     (add-hook 'conf-mode-hook (lambda () (add-hook 'after-save-hook #'mf/xrdb-xresources)))
 
     (setq gc-cons-threshold (* 2 1000 1000))
+
   #+end_src
 
 
@@ -1443,12 +1476,49 @@
 
 ** Top
 
-*** normal mode tab doesnt insert chars but does org-cycle
-       (add-hook 'evil-normal-state-entry-hook
-        (lambda () (setq-local org-cycle-emulate-tab nil)))
-       ;; (define-key evil-normal-state-map (kbd "TAB") 'org-cycle)
-*** advice-add undo ignores whitespace that was added and removed
-*** Jump to end of word when corfu complete
+*** Vertical Padding
+
+    
+**** i want to add visual padding at the top of the buffer when opens not adjust the line spacing
+
+ You can add visual padding at the top of the buffer by adjusting the value of the variable =window-resize-pixelwise=. 
+
+ Add the following code to your Emacs initialization file:
+
+ #+begin_src 
+ (setq-default window-resize-pixelwise t)
+ (setq-default frame-resize-pixelwise t)
+
+ (defun set-frame-size-according-to-resolution ()
+   (interactive)
+   (if (display-graphic-p)
+       (progn
+         ;; use 80% height and 90% width of the available workspace
+         (let* ((os-x-p (eq system-type 'darwin))
+		(top-menu-height-p (and os-x-p (display-graphic-p) (eq window-system 'ns)))
+		(pix-w (frame-pixel-width))
+		(pix-h (frame-pixel-height))
+		(pop-up-frames-p (and (boundp 'pop-up-frames) pop-up-frames))
+		(frame-resize-pixelwise (and window-resize-pixelwise frame-resize-pixelwise))
+		(menu-bar-height (if (and (display-graphic-p) menu-bar-mode) (frame-parameter nil 'menu-bar-lines 0) 0))
+		(scroll-bar-height (if (and (display-graphic-p) scroll-bar-mode) (frame-parameter nil 'scroll-bar-height) 0))
+		(fr-height (- pix-h (* (+ (/ pix-h 10) (* top-menu-height-p 1.5)) frame-resize-pixelwise)))
+		(fr-width (* (/ (* (display-pixel-width) 0.9) (frame-char-width)) frame-resize-pixelwise)))
+           (set-frame-size (selected-frame) (round fr-width) (round fr-height)))))))
+ (add-hook 'window-setup-hook 'set-frame-size-according-to-resolution t)
+ #+end_src
+
+ This code will set the =window-resize-pixelwise= variable to true, which causes windows to be resized in units of pixels. The =set-frame-size-according-to-resolution= function sets the size of Emacs window to be 80% of the available height and 90% of the available width, and it accounts for any menu bars or scroll bars that may be displayed. By default, it will leave a small amount of visual padding at the top of the buffer.
+
+ You can adjust the values used in the =set-frame-size-according-to-resolution= function to control how much padding is displayed, if necessary.
+
+*** Evil Org mode
+    - vim keys to move org headers and list items
+
+**** normal mode tab doesnt insert chars but does org-cycle
+	(add-hook 'evil-normal-state-entry-hook
+         (lambda () (setq-local org-cycle-emulate-tab nil)))
+	;; (define-key evil-normal-state-map (kbd "TAB") 'org-cycle)
 *** Theme
     - Systemcrafters recomended theme patched with space gray colors
     - FIX UNABLE TO LOAD UNSPECIFIED BG
@@ -1463,18 +1533,36 @@
     - smerge show color fix
     - Change contrast through day toggleable
 
-*** GPT in modeline
-    prompt from modeline wrapper, print result to small buffer messages or modeline
 *** Completion
     - < snippet completion
     - Cape Corfu
     - Refine
 
-*** Evil Org mode
-    - vim keys to move org headers and list items
-
+**** Jump to end of word when corfu complete
+**** LSP/eglot
+***** Function info in minibuffer control
+      pinned to static buffer?
+***** elsip
+***** Different completion delay for modes
+****** Writing slow delay
+****** Coding fast delay
+**** Spelling
+     - Ignore
+     - Custom dictionary
+     - Aspell
+     - I-Spell
 *** [[https://www.reddit.com/r/emacs/comments/rlli0u/whats_your_favorite_defadvice/][defadvice]]
    - Update to advice-add
+     ;; (defun mf/kill-line-autoreindent-advice (orig-func &rest args)
+     ;;   "Kill excess whitespace when joining lines.
+     ;; 	     If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
+     ;;   (when (and (eolp) (not (bolp)))
+     ;; 	 (save-excursion
+     ;; 	   (forward-char 1)
+     ;; 	   (just-one-space 1)))
+     ;;   (apply orig-func args))
+     ;; (advice-add 'kill-line :before #'mf/kill-line-autoreindent-advice)
+**** advice-add undo ignores whitespace that was added and removed
 *** [[https://www.reddit.com/r/emacs/comments/ulsrb5/what_have_you_recently_removed_from_your_emacs/][removed]]
 
 *** Kill-ring
@@ -1493,18 +1581,6 @@
     - Different auto indent behavior
 *** Terminal version
     - Defer all unnecessary loading
-*** LSP/eglot
-**** Function info in minibuffer control
-     pinned to static buffer?
-**** elsip
-**** Different completion delay for modes
-***** Writing slow delay
-***** Coding fast delay
-*** Spelling
-    - Ignore
-    - Custom dictionary
-    - Aspell
-    - I-Spell
 *** Undo
     - undo-fu
     - vundo
@@ -1516,6 +1592,8 @@
      - truncate any name when mode line is small
 **** Doom inspiration
 **** Telephone Line
+*** GPT in minibuffer
+    prompt from modeline wrapper, print result to small buffer messages or modeline
 *** Hooks
 **** Dropbox
 
@@ -1626,6 +1704,7 @@
 **** Org Mode Extensions
 ***** Org Mode Literate Code Line Numbers
       the tangled line numbers are displayed in the org mode code blocks
+***** Disable code block from header
 ***** Manipulating the Header In/Exclude Code-Block From Tangle
 **** Org Roam Setup
 ***** Roam Bookmarks?
