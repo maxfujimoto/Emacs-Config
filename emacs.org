@@ -3,7 +3,7 @@
 * init.el
 
 ** Startup
-   the first file emacs will load
+   The first file emacs will load
 
    - Change garbage collection threshold
      - The default is 800 000 bytes
@@ -27,9 +27,8 @@
 
      (if (daemonp)
 	 (add-hook 'emacs-startup-hook
-	       (lambda ()
-		 (shell-command "pkill -RTMIN+7 dwmblocks"))))
-
+		   (lambda ()
+		     (shell-command "pkill -RTMIN+7 dwmblocks"))))
 
      (setq inhibit-startup-message t)
 
@@ -53,6 +52,7 @@
 
 
 ** Native Comp
+   Emacs can compile elisp
 
    - Turn off compiler warnings
    - Set the native comp cache directory
@@ -68,6 +68,7 @@
 
 
 ** Package Manager
+   Package manger configs
 
    | Package            | Description                                     |
    |--------------------+-------------------------------------------------|
@@ -111,6 +112,7 @@
 
 
 ** General Features
+   Features not associated with specific packages
 
    - Enable buffer auto-revert (auto-update)
      - Disable Auto reverting in Buffer-menu-mode
@@ -149,13 +151,13 @@
      (when (display-graphic-p)
        (setq confirm-kill-emacs 'y-or-n-p))
 
-     (desktop-save-mode 0)
-     ;; enable breaks bufferp switching
+     (desktop-save-mode 0)		    ; enable breaks bufferp switching
 
    #+end_src
 
 
 ** Def Advice
+   "Advice" wraps existing functions modifying behavior
 
    - Remove excess whitespace when joining lines
    - Emacs cut and copy work on entire lines if no active region
@@ -239,11 +241,13 @@
 
 
 ** Kill-Hook
+   Sexps run when emacs is killed
 
    - Refresh dwmblocks when emacs is killed
 
    #+begin_src emacs-lisp :tangle ./init.el
-						  ;-------   Kill Hooks   -------\
+					     ;-------   Kill Hooks   -------\
+
      (if (daemonp)
 	 (add-hook 'kill-emacs-hook
 		   (lambda ()
@@ -253,8 +257,7 @@
 
 
 ** Load Paths
-
-   - Paths of other elsip init files
+   Paths of other elsip init files
 
    #+begin_src emacs-lisp :tangle ./init.el
 					     ;-------   Load Paths   -------\
@@ -270,15 +273,17 @@
      (load (concat user-emacs-directory "mf-gui.el"))
      (load (concat user-emacs-directory "mf-sh.el"))
 
-
+     (message "------- Loaded init.el -------")
 
    #+end_src
 
 
 * packages.el
-  - balkanize
+  Non-gui packages are loaded here(?)
+    - balkanize
 
 ** Help
+   Packages that provide documentation features
 
    | Package | Description           |
    |---------+-----------------------|
@@ -300,8 +305,9 @@
 
 
 ** Completion
+   Completion packages
 
-*** General
+*** Mini-Buffer
 
     | Package    | Description                                   |
     |------------+-----------------------------------------------|
@@ -310,8 +316,6 @@
     | Marginalia | Additional mini-buffer completion information |
     | Orderless  | Orderless and wildcard completion support     |
     | Consult    | Replace I-Search                              |
-    | Corfu      | Completion in region                          |
-    | Cape       | Completion functions for Corfu                |
     | Emacs      | Minibuffer settings                           |
 
     #+begin_src emacs-lisp :tangle ./mf-packages.el
@@ -359,6 +363,40 @@
 	:custom
 	(consult-project-root-function #'mf/get-project-root)
 	(completion-in-region-function #'consult-completion-in-region))
+
+      (use-package emacs
+	:init
+	;; Add prompt indicator to `completing-read-multiple'.
+	;; Alternatively try `consult-completing-read-multiple'.
+	(defun crm-indicator (args)
+	  (cons (concat "[CRM] " (car args)) (cdr args)))
+	(advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+
+	;; Do not allow the cursor in the minibuffer prompt
+	(setq minibuffer-prompt-properties
+	      '(read-only t cursor-intangible t face minibuffer-prompt))
+	(add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+
+	;; Emacs 28: Hide commands in M-x which do not work in the current mode.
+	;; Vertico commands are hidden in normal buffers.
+	;; (setq read-extended-command-predicate
+	;;       #'command-completion-default-include-p)
+
+	;; Enable recursive minibuffers
+	(setq enable-recursive-minibuffers t))
+
+    #+end_src
+
+
+*** Completion-At-Point
+
+    | Package    | Description                                   |
+    |------------+-----------------------------------------------|
+    | Corfu      | Completion in region                          |
+    | Cape       | Completion functions for Corfu                |
+
+    #+begin_src emacs-lisp :tangle ./mf-packages.el
+					      ;-------   Completion at Point   -------\
 
       (use-package corfu
 	:bind (:map corfu-map
@@ -411,27 +449,6 @@
 	;;(add-to-list 'completion-at-point-functions #'cape-symbol)
 	;;(add-to-list 'completion-at-point-functions #'cape-line)
       )
-
-      (use-package emacs
-	:init
-	;; Add prompt indicator to `completing-read-multiple'.
-	;; Alternatively try `consult-completing-read-multiple'.
-	(defun crm-indicator (args)
-	  (cons (concat "[CRM] " (car args)) (cdr args)))
-	(advice-add #'completing-read-multiple :filter-args #'crm-indicator)
-
-	;; Do not allow the cursor in the minibuffer prompt
-	(setq minibuffer-prompt-properties
-	      '(read-only t cursor-intangible t face minibuffer-prompt))
-	(add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
-
-	;; Emacs 28: Hide commands in M-x which do not work in the current mode.
-	;; Vertico commands are hidden in normal buffers.
-	;; (setq read-extended-command-predicate
-	;;       #'command-completion-default-include-p)
-
-	;; Enable recursive minibuffers
-	(setq enable-recursive-minibuffers t))
 
     #+end_src
 
@@ -545,9 +562,9 @@
 
 ** REPL
 
-    | Package | Description |
-    |---------+-------------|
-    | slime   | Lisp REPL   |
+   | Package | Description |
+   |---------+-------------|
+   | slime   | Lisp REPL   |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 
@@ -607,9 +624,9 @@
 
 ** Terminals
 
-    | Package | Description       |
-    |---------+-------------------|
-    | vterm   | Terminal emulator |
+   | Package | Description       |
+   |---------+-------------------|
+   | vterm   | Terminal emulator |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					     ;-------   Terminals   -------\
@@ -626,9 +643,9 @@
 
 ** Remote Access
 
-    | Package | Description                                 |
-    |---------+---------------------------------------------|
-    | tramp   | Transparent Remote Access Multiple Protocol |
+   | Package | Description                                 |
+   |---------+---------------------------------------------|
+   | tramp   | Transparent Remote Access Multiple Protocol |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					     ;-------   Tramp   -------\
@@ -643,11 +660,11 @@
 
 ** ERC
 
-    | Package      | Description              |
-    |--------------+--------------------------|
-    | erc          | Emacs client for IRC     |
-    | erc-hl-nicks | Hilight nicknames in erc |
-    | erc-image    | Display images in erc    |
+   | Package      | Description              |
+   |--------------+--------------------------|
+   | erc          | Emacs client for IRC     |
+   | erc-hl-nicks | Hilight nicknames in erc |
+   | erc-image    | Display images in erc    |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 					      ;-------   ERC   -------\
@@ -693,9 +710,9 @@
 
 ** Bookmarks
 
-    | Package | Description                |
-    |---------+----------------------------|
-    | buku    | Org mode browser bookmarks |
+   | Package | Description                |
+   |---------+----------------------------|
+   | buku    | Org mode browser bookmarks |
 
    #+begin_src emacs-lisp :tangle ./mf-packages.el
 
@@ -709,9 +726,9 @@
 
 ** File Types
 
-    | Package   | Descrition              |
-    |-----------+-------------------------|
-    | Pdf-Tools | Pdf support             |
+   | Package   | Descrition              |
+   |-----------+-------------------------|
+   | Pdf-Tools | Pdf support             |
 
     - Load arduino files (.ino) in c-mode
 
@@ -731,6 +748,8 @@
      (add-to-list 'auto-mode-alist
 		  '("\\.ino\\'" . (lambda ()
 				    (c-mode))))
+
+     (message "------- Loaded packages.el -------")
 
    #+end_src
 
@@ -890,6 +909,8 @@
        "select file"
        ("e" (find-file (expand-file-name (concat user-emacs-directory "emacs.org")))"emacs.org" :exit t)
        ("t" (find-file (expand-file-name "~/Org/todo.org"))"todo.org" :exit t)
+       ("g" (find-file (expand-file-name "~/Org/toget.org"))"toget.org" :exit t)
+       ("m" (find-file (expand-file-name "~/Org/tomake.org"))"tomake.org" :exit t)
        ("n" (find-file (expand-file-name "~/Org/notes.org"))"notes.org" :exit t)
        ("r" (find-file (expand-file-name "~/Documents/Recipe_Book/Recipe_Book_2/recipes.org"))"recipes.org" :exit t)
        ("<escape>" nil "exit" :exit t))
@@ -963,6 +984,9 @@
      (defun mf/switch-to-messages ()
        (interactive)
        (switch-to-buffer "*Messages*"))
+
+
+     (message "------- Loaded keys.el -------")
 
     #+end_src
 
@@ -1146,13 +1170,16 @@
 	     ("music" . ?p)
 	     ("idea" . ?i)))
 
+
+     (message "------- Loaded org.el -------")
+
    #+end_src
 
 
 * templates.el
 
   #+begin_src emacs-lisp :tangle ./mf-templates.el
-						;-------   Tempo Templates   -------\
+					    ;-------   Tempo Templates   -------\
 
     (with-eval-after-load 'org
       ;; This is needed as of Org 9.2
@@ -1206,6 +1233,8 @@
 	     :clock-in :clock-resume
 	     :empty-lines 1)))
 
+    (message "------- Loaded templates.el -------")
+
  #+end_src
 
 
@@ -1251,7 +1280,11 @@
        :config
        (global-visual-fill-column-mode t))
 
-   #+End_src
+     (setq scroll-conservatively 101
+	   scroll-margin 3
+	   scroll-preserve-screen-position 't)
+
+   #+end_src
 
 
 ** General
@@ -1353,7 +1386,11 @@
    #+begin_src emacs-lisp :tangle ./mf-gui.el
 					     ;-------   Fonts    -------\
 
-     ;; (set-face-attribute 'default nil :font "FONT NAME" :height ##)
+     ;; (set-face-attribute 'default nil
+     ;;		    :font "SauceCodePro Nerd Font")
+
+     ;; (set-face-attribute 'fixed-pitch nil
+     ;;		    :font "SauceCodePro Nerd Font")
 
    #+end_src
 
@@ -1389,13 +1426,11 @@
    #+begin_src emacs-lisp :tangle ./mf-gui.el
 					     ;-------   Modeline   -------\
 
-
      (use-package mlscroll
        :if (display-graphic-p)
        :unless (daemonp)
        :config
        (mlscroll-mode 1))
-
 
      (if (daemonp)
 	 (add-hook 'server-after-make-frame-hook #'mlscroll-mode))
@@ -1416,7 +1451,7 @@
      ;;   (mlscroll-mode 1)
      ;;   ;; :if (daemonp)
      ;;   :hook ((server-after-init . mlscroll-mode)
-     ;; 	 (server-after-make-frame . mlscroll-mode)))
+     ;;	 (server-after-make-frame . mlscroll-mode)))
 
      (with-eval-after-load 'evil
        (setq evil-normal-state-tag
@@ -1443,33 +1478,47 @@
 				    (lambda (fg) (set-face-foreground 'mode-line fg))
 				    orig-fg))))
 
+    (message "------- Loaded gui.el -------")
+
    #+end_src
 
 
 * sh.el
+  (S)ave (H)ooks and (sh)ell scripts
 
-  | Function                  | Description                                  |
-  |---------------------------+----------------------------------------------|
-  | mf/xrdb-xresources        | Aftersave hook to reinit .Xresources         |
-  | mf/org-dropbox            | Run dropbox when any ~/Dropbox file is open  |
-
-  - reset gc-cons-threshold to a reasonabe value
+  | Function           | Description                                 |
+  |--------------------+---------------------------------------------|
+  | mf/xrdb-xresources | Aftersave hook to reinit .Xresources        |
+  | mf/org-dropbox     | Run dropbox when any ~/Dropbox file is open |
 
   #+begin_src emacs-lisp :tangle ./mf-sh.el
 					    ;-------   Save Hooks   -------\
 
     (defun mf/xrdb-xresources ()
-      (when (string-equal (buffer-file-name)
-			  (expand-file-name "~/.dotfiles/.Xresources"))
-	(and (shell-command "xrdb ~/.Xresources")
-	     (message "xrdb updated"))))
+      "Run xrdb on ~/.Xresources if modified."
+      (when (and (buffer-file-name) ; check buffer has a name
+		 (string-equal (buffer-file-name)
+			       (expand-file-name "~/.Xresources")))
+	(let ((command-result (shell-command "xrdb ~/.Xresources")))
+	  (when (= command-result 0)
+	    (message "Xrdb Updated")))))
 
-    (add-hook 'conf-mode-hook (lambda () (add-hook 'after-save-hook #'mf/xrdb-xresources)))
+    (defun mf/add-xrdb-hook ()
+      "Add mf/xrdb-xresources to 'after-save-hook'."
+      (add-hook 'after-save-hook #'mf/xrdb-xresources nil :local))
 
-    (setq gc-cons-threshold (* 2 1000 1000))
+    (add-hook 'conf-mode-hook #'mf/add-xrdb-hook)
 
   #+end_src
 
+  - reset gc-cons-threshold to a reasonabe value
+  #+begin_src emacs-lisp :tangle ./mf-sh.el
+
+    (setq gc-cons-threshold (* 2 1000 1000))
+
+    (message "------- Loaded sh.el -------")
+
+  #+end_src
 
 
 * Plans
@@ -1478,14 +1527,17 @@
 
 *** Vertical Padding
 
-    
+(let ((margin (make-string 5 ?\n)))
+    (put-text-property 1 (length margin) 'display margin)
+    (insert margin))
+
 **** i want to add visual padding at the top of the buffer when opens not adjust the line spacing
 
  You can add visual padding at the top of the buffer by adjusting the value of the variable =window-resize-pixelwise=. 
 
  Add the following code to your Emacs initialization file:
 
- #+begin_src 
+ #+begin_src
  (setq-default window-resize-pixelwise t)
  (setq-default frame-resize-pixelwise t)
 
@@ -1519,6 +1571,8 @@
 	(add-hook 'evil-normal-state-entry-hook
          (lambda () (setq-local org-cycle-emulate-tab nil)))
 	;; (define-key evil-normal-state-map (kbd "TAB") 'org-cycle)
+
+*** Org Roam Include Recipes Sometimes functionality
 *** Theme
     - Systemcrafters recomended theme patched with space gray colors
     - FIX UNABLE TO LOAD UNSPECIFIED BG
@@ -1555,16 +1609,15 @@
    - Update to advice-add
      ;; (defun mf/kill-line-autoreindent-advice (orig-func &rest args)
      ;;   "Kill excess whitespace when joining lines.
-     ;; 	     If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
+     ;;	     If the next line is joined to the current line, kill the extra indent whitespace in front of the next line."
      ;;   (when (and (eolp) (not (bolp)))
-     ;; 	 (save-excursion
-     ;; 	   (forward-char 1)
-     ;; 	   (just-one-space 1)))
+     ;;	 (save-excursion
+     ;;	   (forward-char 1)
+     ;;	   (just-one-space 1)))
      ;;   (apply orig-func args))
      ;; (advice-add 'kill-line :before #'mf/kill-line-autoreindent-advice)
 **** advice-add undo ignores whitespace that was added and removed
 *** [[https://www.reddit.com/r/emacs/comments/ulsrb5/what_have_you_recently_removed_from_your_emacs/][removed]]
-
 *** Kill-ring
     - Learn
 
@@ -1576,7 +1629,7 @@
     - Marginalia/mini-buffer no text wrapping
 *** Quote
     - [[https://github.com/arecker/wilfred-say][wilfred quotes]]
-
+    (setq-default header-line-format "This is the header")
 *** Indentation
     - Different auto indent behavior
 *** Terminal version
@@ -1641,7 +1694,6 @@
 **** Window layout for ide
 
 *** visual box cursor can go anywhere
-
 ** Feature/Behavior
 *** Minad Packages
 **** Embark
@@ -1652,11 +1704,11 @@
 *** Arduino IDE
 *** Startup
 *** Modes
-**** Tramp
-     - Setup
 **** Work-Spaces
      - Eyebrowse
      - Perspecate
+**** Tramp
+     - Setup
 **** Calc Mode
 **** Erc
      - config
@@ -1665,6 +1717,11 @@
 *** Native Comp Settings
 *** Gantt Charts
 *** Org
+**** Org Mode Extensions
+***** Org Mode Literate Code Line Numbers
+      the tangled line numbers are displayed in the org mode code blocks
+***** Manipulating the Header In/Exclude Code-Block From Tangle
+
 **** Capture
 ***** Debugging with file pointer
 ***** Notes
@@ -1722,11 +1779,6 @@
       - AUCTeX
       - bibliography
       - bibtex roam
-**** Org Mode Extensions
-***** Org Mode Literate Code Line Numbers
-      the tangled line numbers are displayed in the org mode code blocks
-***** Manipulating the Header In/Exclude Code-Block From Tangle
-
 *** Browser Bookmarks
 *** Pomodoro
 *** comint-previous-input
@@ -1741,6 +1793,7 @@
       - less functionality
 	- if i need a function bound i should bind it myself
       - Toggle-able so I still have access to the bloat
+
 ** Bugs
 *** Dir Local Vars load after org mode
 **** all #+STARTUP: options don't work with .dir-locals.el

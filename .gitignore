@@ -3,7 +3,10 @@
 
 # Excluding
 !emacs.org
+!README.org
 !/themes/
 /themes/*
 !/themes/mf-*
 !/themes/doom-mf*
+/themes/\#*\#
+/themes/*~
