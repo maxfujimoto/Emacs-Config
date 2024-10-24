@@ -50,8 +50,9 @@ determine the exact padding."
   "A dark theme inspired by Atom Spacegrey Dark"
 
   ;; name        default   256       16
-  ((bg         '("#030207" nil       nil            ))
-   (bg-alt     '("#232830" nil       nil            ))
+  ((bg         '("#030207" "black"  "black"))
+   (bg-alt     '("#131419" "black" "black"))
+   ;; (bg-alt     '("#202527" nil       nil            ))
    (base0      '("#1B2229" "black"   "black"        ))
    (base1      '("#1c1f24" "#1e1e1e" "brightblack"  ))
    (base2      '("#202328" "#2e2e2e" "brightblack"  ))
@@ -79,7 +80,7 @@ determine the exact padding."
 
    ;; face categories -- required for all themes
    (highlight      cyan)
-   (vertical-bar   (doom-darken bg 0.25))
+   (vertical-bar   (doom-lighten bg 0.25))
    (selection      base4)
    (builtin        orange)
    (comments       (if doom-spacegrey-brighter-comments dark-cyan base5))
@@ -108,7 +109,8 @@ determine the exact padding."
     (when doom-spacegrey-padded-modeline
       (if (integerp doom-spacegrey-padded-modeline) doom-spacegrey-padded-modeline 4)))
 
-   (modeline-fg     nil)
+   ;; (modeline-fg     nil)
+   (modeline-fg     'unspecified)
    (modeline-fg-alt (doom-blend violet base4 (if -modeline-bright 0.5 0.2)))
    (modeline-bg
     (if -modeline-bright
@@ -124,7 +126,8 @@ determine the exact padding."
 
   ;;;; Base theme face overrides
   (((font-lock-comment-face &override)
-    :background (if doom-spacegrey-comment-bg (doom-lighten bg 0.05)))
+    ;; :background (if doom-spacegrey-comment-bg (doom-lighten bg 0.05)))
+    :background (if doom-spacegrey-comment-bg (doom-lighten bg 0.05) 'unspecified))
    ((line-number &override) :foreground base4)
    ((line-number-current-line &override) :foreground fg)
    (mode-line
@@ -170,12 +173,15 @@ determine the exact padding."
    (solaire-mode-line-inactive-face
     :inherit 'mode-line-inactive
     :background modeline-bg-inactive-l
-    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l))))
+    :box (if -modeline-pad `(:line-width ,-modeline-pad :color ,modeline-bg-inactive-l)))
+   (cursor :bg "white"))
 
   ;;;; Base theme variable overrides-
+  ;;;; ()
   )
 
-(setq evil-normal-state-cursor '(box "white")
-      evil-insert-state-cursor '(bar "white")
-      evil-visual-state-cursor '(hollow "#c0c5ce"))
 ;;; doom-spacegrey-theme.el ends here
+
+;; (setq evil-normal-state-cursor '(box "white")
+;;       evil-insert-state-cursor '(bar "white")
+;;       evil-visual-state-cursor '(hollow "#c0c5ce"))
